@@ -14,7 +14,8 @@ func main() {
 	fmt.Println("konvert")
 
 	hf := &fetcher.HelmFetcher{
-		Name: "postgresql",
+		Name:    "stable/postgresql",
+		Version: "5.3.12",
 	}
 
 	err := hf.Fetch()

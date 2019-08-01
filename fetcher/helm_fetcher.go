@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -23,15 +24,20 @@ func (h *HelmFetcher) Fetch() error {
 	}
 
 	fetchArgs := []string{"fetch", "--untar"}
-	fetchArgs = append(fetchArgs, "stable/"+h.Name)
+	if h.Version != "" {
+		fetchArgs = append(fetchArgs, "--version", h.Version)
+		fetchArgs = append(fetchArgs, "--destination", fmt.Sprintf("%s-%s", h.Name, h.Version))
+	} else {
+		fetchArgs = append(fetchArgs, "--destination", h.Name)
+	}
+	fetchArgs = append(fetchArgs, h.Name)
 
+	log.Printf("Running helm: %v", fetchArgs)
 	cmd := h.command(cachedir, fetchArgs...)
 	out, err := cmd.Output()
 	if err != nil {
-		return errors.Wrapf(err, "error running %v: %q", cmd)
+		return errors.Wrapf(err, "error running %v: %q", cmd, string(out))
 	}
-
-	log.Println(string(out))
 
 	return nil
 }
