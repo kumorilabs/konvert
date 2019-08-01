@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ryane/konvert/fetcher"
+	"github.com/ryane/konvert/pkg/fetcher"
 	log "github.com/sirupsen/logrus"
 )
 
