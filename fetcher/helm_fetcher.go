@@ -2,23 +2,35 @@ package fetcher
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type HelmFetcher struct {
-	SourceURL string
-	Name      string
-	Version   string
+	Name    string
+	Version string
+	log     *log.Entry
+}
+
+func NewHelmFetcher(name, version string) *HelmFetcher {
+	return &HelmFetcher{
+		Name:    name,
+		Version: version,
+		log: log.WithFields(log.Fields{
+			"pkg":     "fetcher",
+			"fetcher": "helm",
+		}),
+	}
 }
 
 func (h *HelmFetcher) Fetch() error {
 	cachedir := cacheDir()
-	log.Printf("cachedir: %s", cachedir)
+	h.log.Debugf("cachedir: %s", cachedir)
+
 	if err := os.MkdirAll(cachedir, os.ModePerm); err != nil {
 		return errors.Wrapf(err, "error creating cache dir %s", cachedir)
 	}
@@ -32,11 +44,12 @@ func (h *HelmFetcher) Fetch() error {
 	}
 	fetchArgs = append(fetchArgs, h.Name)
 
-	log.Printf("Running helm: %v", fetchArgs)
+	h.log.Debugf("Running helm: %v", fetchArgs)
 	cmd := h.command(cachedir, fetchArgs...)
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
+
 	if err != nil {
-		return errors.Wrapf(err, "error running %v: %q", cmd, string(out))
+		return errors.Wrapf(err, "error running helm %v: %q", fetchArgs, string(out))
 	}
 
 	return nil

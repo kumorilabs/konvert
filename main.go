@@ -1,22 +1,16 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/ryane/konvert/fetcher"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+	log.SetLevel(log.DebugLevel)
 	// parse konvert.yaml
 	// fetch helm source
 	// run helm template
-	fmt.Println("konvert")
-
-	hf := &fetcher.HelmFetcher{
-		Name:    "stable/postgresql",
-		Version: "5.3.12",
-	}
+	hf := fetcher.NewHelmFetcher("stable/postgresql", "5.3.12")
 
 	err := hf.Fetch()
 	if err != nil {
