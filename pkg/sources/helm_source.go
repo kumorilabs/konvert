@@ -1,4 +1,4 @@
-package fetcher
+package sources
 
 import (
 	"fmt"
@@ -10,24 +10,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type HelmFetcher struct {
+// HelmSource represents a helm chart
+type HelmSource struct {
 	Name    string
 	Version string
 	log     *log.Entry
 }
 
-func NewHelmFetcher(name, version string) *HelmFetcher {
-	return &HelmFetcher{
+// NewHelmSource creates a new Helm Source
+func NewHelmSource(name, version string) *HelmSource {
+	return &HelmSource{
 		Name:    name,
 		Version: version,
 		log: log.WithFields(log.Fields{
-			"pkg":     "fetcher",
-			"fetcher": "helm",
+			"pkg":    "sources",
+			"source": "helm",
 		}),
 	}
 }
 
-func (h *HelmFetcher) Fetch() error {
+// Fetch downloads the source
+func (h *HelmSource) Fetch() error {
 	cachedir := cacheDir()
 	h.log.Debugf("cachedir: %s", cachedir)
 
@@ -55,12 +58,18 @@ func (h *HelmFetcher) Fetch() error {
 	return nil
 }
 
-func (h *HelmFetcher) command(wd string, args ...string) *exec.Cmd {
+// Generate creates raw manifests
+func (h *HelmSource) Generate() error { return nil }
+
+// Kustomize creates customizations
+func (h *HelmSource) Kustomize() error { return nil }
+
+func (h *HelmSource) command(wd string, args ...string) *exec.Cmd {
 	cmd := exec.Command("helm", args...)
 	cmd.Dir = wd
 	return cmd
 }
 
 func cacheDir() string {
-	return filepath.Join(os.Getenv("HOME"), ".cache", "konvert")
+	return filepath.Join(os.Getenv("HOME"), ".cache", "konvert", "helm")
 }

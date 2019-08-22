@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ryane/konvert/pkg/fetcher"
+	"github.com/ryane/konvert/pkg/sources"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -10,9 +10,9 @@ func main() {
 	// parse konvert.yaml
 	// fetch helm source
 	// run helm template
-	hf := fetcher.NewHelmFetcher("stable/postgresql", "5.3.12")
+	hs := sources.NewHelmSource("stable/postgresql", "5.3.12")
 
-	err := hf.Fetch()
+	err := hs.Fetch()
 	if err != nil {
 		log.Fatal(err)
 	}
