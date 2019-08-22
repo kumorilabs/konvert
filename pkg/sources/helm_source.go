@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -38,21 +39,11 @@ func (h *HelmSource) Fetch() error {
 		return errors.Wrapf(err, "error creating cache dir %s", cachedir)
 	}
 
-	fetchArgs := []string{"fetch", "--untar"}
-	if h.Version != "" {
-		fetchArgs = append(fetchArgs, "--version", h.Version)
-		fetchArgs = append(fetchArgs, "--destination", fmt.Sprintf("%s-%s", h.Name, h.Version))
-	} else {
-		fetchArgs = append(fetchArgs, "--destination", h.Name)
-	}
-	fetchArgs = append(fetchArgs, h.Name)
-
-	h.log.Debugf("Running helm: %v", fetchArgs)
-	cmd := h.command(cachedir, fetchArgs...)
+	cmd := h.fetchCommand(cachedir)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return errors.Wrapf(err, "error running helm %v: %q", fetchArgs, string(out))
+		return errors.Wrapf(err, "error running fetch command: %q", string(out))
 	}
 
 	return nil
@@ -64,9 +55,25 @@ func (h *HelmSource) Generate() error { return nil }
 // Kustomize creates customizations
 func (h *HelmSource) Kustomize() error { return nil }
 
-func (h *HelmSource) command(wd string, args ...string) *exec.Cmd {
+func (h *HelmSource) fetchCommand(wd string) *exec.Cmd {
+	args := []string{"fetch", "--untar"}
+	if h.Version != "" {
+		args = append(
+			args,
+			"--version", h.Version,
+			"--destination", fmt.Sprintf("%s-%s", h.Name, h.Version),
+		)
+	} else {
+		args = append(args, "--destination", h.Name)
+	}
+	args = append(args, h.Name)
 	cmd := exec.Command("helm", args...)
 	cmd.Dir = wd
+
+	h.log.
+		WithField("cmd", strings.Join(append([]string{"helm"}, args...), " ")).
+		Debug("Built helm fetch command")
+
 	return cmd
 }
 
