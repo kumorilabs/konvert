@@ -54,8 +54,12 @@ func (k *Konverter) writeResources(resources []sources.Resource) error {
 		)
 	}
 
+	kustfile := NewKustomization()
+	kustfilename := filepath.Join(k.outputDirectory, "kustomization.yaml")
+
 	for _, res := range resources {
-		filename := filepath.Join(k.outputDirectory, resourceFileName(res))
+		resfile := resourceFileName(res)
+		outfile := filepath.Join(k.outputDirectory, resfile)
 
 		data, err := yaml.Marshal(res.Object)
 		if err != nil {
@@ -66,16 +70,22 @@ func (k *Konverter) writeResources(resources []sources.Resource) error {
 			)
 		}
 
-		err = ioutil.WriteFile(filename, data, 0644)
+		err = ioutil.WriteFile(outfile, data, 0644)
 		if err != nil {
 			return errors.Wrapf(
 				err,
 				"error writing resource %q to %s",
 				res.ID(),
-				filename,
+				outfile,
 			)
 		}
+		kustfile.AddResource(resfile)
 	}
+
+	if err := kustfile.Save(kustfilename); err != nil {
+		return err
+	}
+
 	return nil
 }
 
