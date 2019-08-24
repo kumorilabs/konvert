@@ -46,6 +46,8 @@ func (k *Konverter) Run() error {
 }
 
 func (k *Konverter) writeResources(resources []sources.Resource) error {
+	// TODO: delete output directory if it already exists
+	// TODO: prompt? add -f force flag?
 	if err := os.MkdirAll(k.outputDirectory, os.ModePerm); err != nil {
 		return errors.Wrapf(
 			err,
