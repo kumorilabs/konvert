@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ryane/konvert/pkg/konverter"
 	"github.com/ryane/konvert/pkg/sources"
 	log "github.com/sirupsen/logrus"
 )
@@ -12,8 +13,9 @@ func main() {
 	// run helm template
 	hs := sources.NewHelmSource("stable/postgresql", "5.3.12")
 
-	err := hs.Fetch()
-	if err != nil {
+	outputDirectory := "./output"
+	converter := konverter.New(hs, outputDirectory)
+	if err := converter.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
