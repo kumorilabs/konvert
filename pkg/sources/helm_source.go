@@ -74,7 +74,7 @@ func (h *HelmSource) Generate() ([]Resource, error) {
 		return resources, errors.Wrap(err, "error decoding template output")
 	}
 
-	log.Debugf("found %d resources", len(resources))
+	h.log.Debugf("found %d resources", len(resources))
 
 	return resources, nil
 }
@@ -83,8 +83,11 @@ func (h *HelmSource) Generate() ([]Resource, error) {
 func (h *HelmSource) Kustomize() error { return nil }
 
 func (h *HelmSource) templateCommand() *exec.Cmd {
-	args := []string{"template"}
-	args = append(args, filepath.Join(h.chartDir(), h.Name))
+	args := []string{
+		"template",
+		"--name", h.Name,
+		filepath.Join(h.chartDir(), h.Name),
+	}
 
 	cmd := exec.Command("helm", args...)
 
