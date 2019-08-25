@@ -16,10 +16,10 @@ import (
 
 // HelmSource represents a helm chart
 type HelmSource struct {
-	Repo    string
-	Name    string
-	Version string
-	log     *log.Entry
+	repo      string
+	chartName string
+	version   string
+	log       *log.Entry
 }
 
 // NewHelmSource creates a new Helm Source
@@ -28,9 +28,9 @@ func NewHelmSource(name, version string) *HelmSource {
 	// TODO: verify valid name
 
 	return &HelmSource{
-		Repo:    nameParts[0],
-		Name:    nameParts[1],
-		Version: version,
+		repo:      nameParts[0],
+		chartName: nameParts[1],
+		version:   version,
 		log: log.WithFields(log.Fields{
 			"pkg":    "sources",
 			"source": "helm",
@@ -40,7 +40,7 @@ func NewHelmSource(name, version string) *HelmSource {
 
 // Fetch downloads the source
 func (h *HelmSource) Fetch() error {
-	chartYaml := filepath.Join(h.chartDir(), h.Name, "Chart.yaml")
+	chartYaml := filepath.Join(h.chartDir(), h.Name(), "Chart.yaml")
 	if _, err := os.Stat(chartYaml); err == nil {
 		// chart is already extracted, return
 		h.log.Debug("found chart in cache")
@@ -82,11 +82,16 @@ func (h *HelmSource) Generate() ([]Resource, error) {
 // Kustomize creates customizations
 func (h *HelmSource) Kustomize() error { return nil }
 
+// Name returns the name of this source
+func (h *HelmSource) Name() string {
+	return h.chartName
+}
+
 func (h *HelmSource) templateCommand() *exec.Cmd {
 	args := []string{
 		"template",
-		"--name", h.Name,
-		filepath.Join(h.chartDir(), h.Name),
+		"--name", h.Name(),
+		filepath.Join(h.chartDir(), h.Name()),
 	}
 
 	cmd := exec.Command("helm", args...)
@@ -100,13 +105,13 @@ func (h *HelmSource) templateCommand() *exec.Cmd {
 
 func (h *HelmSource) fetchCommand() *exec.Cmd {
 	args := []string{"fetch", "--untar"}
-	if h.Version != "" {
-		args = append(args, "--version", h.Version)
+	if h.version != "" {
+		args = append(args, "--version", h.version)
 	}
 	args = append(
 		args,
 		"--destination", h.chartDir(),
-		h.Repo+"/"+h.Name,
+		h.repo+"/"+h.Name(),
 	)
 	cmd := exec.Command("helm", args...)
 
@@ -149,15 +154,15 @@ func (h *HelmSource) decode(in io.Reader) ([]Resource, error) {
 
 func (h *HelmSource) chartDir() string {
 	var d string
-	if h.Version != "" {
-		d = fmt.Sprintf("%s-%s", h.Name, h.Version)
+	if h.version != "" {
+		d = fmt.Sprintf("%s-%s", h.Name(), h.version)
 	} else {
-		d = h.Name
+		d = h.Name()
 	}
 
 	return filepath.Join(
 		cacheDir(),
-		h.Repo,
+		h.repo,
 		d,
 	)
 }

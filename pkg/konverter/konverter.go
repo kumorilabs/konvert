@@ -15,16 +15,16 @@ import (
 
 // Konverter converts sources into Kustomize bases
 type Konverter struct {
-	source          sources.Source
-	outputDirectory string
-	log             *log.Entry
+	konfig                 *Konfig
+	source                 sources.Source
+	kustomizationDirectory string
+	log                    *log.Entry
 }
 
 // New creates a new Konverter
-func New(source sources.Source, outdir string) *Konverter {
+func New(konfig *Konfig) *Konverter {
 	return &Konverter{
-		source:          source,
-		outputDirectory: outdir,
+		konfig: konfig,
 		log: log.WithFields(log.Fields{
 			"pkg": "konverter",
 		}),
@@ -33,6 +33,10 @@ func New(source sources.Source, outdir string) *Konverter {
 
 // Run runs konverts the source
 func (k *Konverter) Run() error {
+	if err := k.getSource(); err != nil {
+		return errors.Wrap(err, "error getting source")
+	}
+
 	if err := k.source.Fetch(); err != nil {
 		return errors.Wrap(err, "error fetching source")
 	}
@@ -48,20 +52,20 @@ func (k *Konverter) Run() error {
 func (k *Konverter) writeResources(resources []sources.Resource) error {
 	// TODO: delete output directory if it already exists
 	// TODO: prompt? add -f force flag?
-	if err := os.MkdirAll(k.outputDirectory, os.ModePerm); err != nil {
+	if err := os.MkdirAll(k.kustomizationDirectory, os.ModePerm); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating output dir %s",
-			k.outputDirectory,
+			k.kustomizationDirectory,
 		)
 	}
 
 	kustfile := NewKustomization()
-	kustfilename := filepath.Join(k.outputDirectory, "kustomization.yaml")
+	kustfilename := filepath.Join(k.kustomizationDirectory, "kustomization.yaml")
 
 	for _, res := range resources {
 		resfile := resourceFileName(res)
-		outfile := filepath.Join(k.outputDirectory, resfile)
+		outfile := filepath.Join(k.kustomizationDirectory, resfile)
 
 		data, err := yaml.Marshal(res.Object)
 		if err != nil {
@@ -89,6 +93,44 @@ func (k *Konverter) writeResources(resources []sources.Resource) error {
 	}
 
 	return nil
+}
+
+func (k *Konverter) getSource() error {
+	t := strings.ToLower(k.konfig.Source.Type)
+	switch t {
+	case "helm":
+		s, err := getHelmSource(k.konfig.Source.Config)
+		if err != nil {
+			return err
+		}
+		k.source = s
+		k.kustomizationDirectory = filepath.Join(
+			k.konfig.konvertDirectory,
+			s.Name(),
+		)
+	default:
+		return fmt.Errorf("unsupported source type: %s", k.konfig.Source.Type)
+	}
+
+	return nil
+}
+
+func getHelmSource(config map[string]interface{}) (sources.Source, error) {
+	var helmConfig *helmSourceConfig
+	if err := unmarshalConfig(config, &helmConfig); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling helm source config")
+	}
+
+	// TODO: validate helmConfig
+	return sources.NewHelmSource(helmConfig.Name, helmConfig.Version), nil
+}
+
+func unmarshalConfig(config, configOut interface{}) error {
+	b, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+	return yaml.Unmarshal(b, configOut)
 }
 
 func resourceFileName(res sources.Resource) string {

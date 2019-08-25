@@ -1,11 +1,13 @@
-type: helm
-source: https://kubernetes-charts.storage.googleapis.com
-name: postgresql
-values:
-  global:
-    postgresql:
-      existingSecret: fore-postgresql
-  persistence:
-    enabled: true
-  postgresqlDatabase: testdb
-  postgresqlUsername: testuser
+source:
+  type: helm
+  config:
+    name: stable/postgresql
+    version: 5.3.12
+    values:
+      global:
+        postgresql:
+          existingSecret: fore-postgresql
+      persistence:
+        enabled: true
+      postgresqlDatabase: testdb
+      postgresqlUsername: testuser

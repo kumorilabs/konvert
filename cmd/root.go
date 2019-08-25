@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/ryane/konvert/pkg/konverter"
-	"github.com/ryane/konvert/pkg/sources"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -40,26 +39,18 @@ func newRootCommand(args []string) *cobra.Command {
 		}(),
 	}
 
-	rootCmd.Flags().StringVarP(&root.chart, "chart", "c", "", "Helm chart to convert")
-	rootCmd.Flags().StringVarP(&root.version, "chart-version", "v", "", "Helm chart version")
-	rootCmd.Flags().StringVarP(&root.out, "out", "o", "", "Output directory")
-
 	rootCmd.SetVersionTemplate(`{{.Version}}`)
 
 	return rootCmd
 }
 
 func (r *root) run() error {
-	if r.chart == "" {
-		return fmt.Errorf("chart is required")
+	// load config
+	config, err := konverter.LoadConfig()
+	if err != nil {
+		return err
 	}
-
-	if r.out == "" {
-		r.out = "./konvert"
-	}
-
-	hs := sources.NewHelmSource(r.chart, r.version)
-	converter := konverter.New(hs, r.out)
+	converter := konverter.New(config)
 	return converter.Run()
 }
 
