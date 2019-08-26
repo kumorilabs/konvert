@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,35 +12,53 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
-// HelmSource represents a helm chart
-type HelmSource struct {
-	repo      string
-	chartName string
-	version   string
+// helmSource represents a helm chart
+type helmSource struct {
+	Repo      string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
+	ChartName string                 `json:"name,omitempty" yaml:"name,omitempty"`
+	Version   string                 `json:"version,omitempty" yaml:"version,omitempty"`
+	Values    map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 	log       *log.Entry
 }
 
-// NewHelmSource creates a new Helm Source
-func NewHelmSource(name, version string) *HelmSource {
-	nameParts := strings.Split(name, "/")
-	// TODO: verify valid name
+// NewHelmSourceFromConfig creates a new Helm Source from a config map
+func NewHelmSourceFromConfig(config map[string]interface{}) (Source, error) {
+	var source *helmSource
 
-	return &HelmSource{
-		repo:      nameParts[0],
-		chartName: nameParts[1],
-		version:   version,
-		log: log.WithFields(log.Fields{
-			"pkg":    "sources",
-			"source": "helm",
-		}),
+	// marshal map into a byte slice
+	b, err := yaml.Marshal(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling helm source config")
 	}
+
+	// unmarshal into a helmSource
+	err = yaml.Unmarshal(b, &source)
+	if err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling helm source config")
+	}
+
+	if strings.Contains(source.ChartName, "/") {
+		nameParts := strings.Split(source.ChartName, "/")
+		if len(nameParts) > 1 {
+			source.Repo = nameParts[0]
+			source.ChartName = nameParts[1]
+		}
+	}
+
+	source.log = log.WithFields(log.Fields{
+		"pkg":    "sources",
+		"source": "helm",
+	})
+
+	return source, nil
 }
 
 // Fetch downloads the source
-func (h *HelmSource) Fetch() error {
+func (h *helmSource) Fetch() error {
 	chartYaml := filepath.Join(h.chartDir(), h.Name(), "Chart.yaml")
 	if _, err := os.Stat(chartYaml); err == nil {
 		// chart is already extracted, return
@@ -62,8 +81,32 @@ func (h *HelmSource) Fetch() error {
 }
 
 // Generate creates raw manifests
-func (h *HelmSource) Generate() ([]Resource, error) {
-	cmd := h.templateCommand()
+func (h *helmSource) Generate() ([]Resource, error) {
+	var valuesFile string
+
+	if len(h.Values) > 0 {
+		tmpfile, err := ioutil.TempFile("", fmt.Sprintf("konvert-%s-*", h.Name()))
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating values file")
+		}
+
+		defer func() {
+			_ = os.Remove(tmpfile.Name())
+		}()
+
+		b, err := yaml.Marshal(h.Values)
+		if err != nil {
+			return nil, errors.Wrap(err, "error marshaling values")
+		}
+
+		if _, err := tmpfile.Write(b); err != nil {
+			return nil, errors.Wrap(err, "error writing values file")
+		}
+
+		valuesFile = tmpfile.Name()
+	}
+
+	cmd := h.templateCommand(valuesFile)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error running template command: %q", string(out))
@@ -79,20 +122,22 @@ func (h *HelmSource) Generate() ([]Resource, error) {
 	return resources, nil
 }
 
-// Kustomize creates customizations
-func (h *HelmSource) Kustomize() error { return nil }
-
 // Name returns the name of this source
-func (h *HelmSource) Name() string {
-	return h.chartName
+func (h *helmSource) Name() string {
+	return h.ChartName
 }
 
-func (h *HelmSource) templateCommand() *exec.Cmd {
+func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 	args := []string{
 		"template",
 		"--name", h.Name(),
-		filepath.Join(h.chartDir(), h.Name()),
 	}
+
+	if valuesFile != "" {
+		args = append(args, "-f", valuesFile)
+	}
+
+	args = append(args, filepath.Join(h.chartDir(), h.Name()))
 
 	cmd := exec.Command("helm", args...)
 
@@ -103,15 +148,15 @@ func (h *HelmSource) templateCommand() *exec.Cmd {
 	return cmd
 }
 
-func (h *HelmSource) fetchCommand() *exec.Cmd {
+func (h *helmSource) fetchCommand() *exec.Cmd {
 	args := []string{"fetch", "--untar"}
-	if h.version != "" {
-		args = append(args, "--version", h.version)
+	if h.Version != "" {
+		args = append(args, "--version", h.Version)
 	}
 	args = append(
 		args,
 		"--destination", h.chartDir(),
-		h.repo+"/"+h.Name(),
+		h.Repo+"/"+h.Name(),
 	)
 	cmd := exec.Command("helm", args...)
 
@@ -122,7 +167,7 @@ func (h *HelmSource) fetchCommand() *exec.Cmd {
 	return cmd
 }
 
-func (h *HelmSource) decode(in io.Reader) ([]Resource, error) {
+func (h *helmSource) decode(in io.Reader) ([]Resource, error) {
 	var (
 		result []Resource
 		err    error
@@ -152,17 +197,17 @@ func (h *HelmSource) decode(in io.Reader) ([]Resource, error) {
 	return result, nil
 }
 
-func (h *HelmSource) chartDir() string {
+func (h *helmSource) chartDir() string {
 	var d string
-	if h.version != "" {
-		d = fmt.Sprintf("%s-%s", h.Name(), h.version)
+	if h.Version != "" {
+		d = fmt.Sprintf("%s-%s", h.Name(), h.Version)
 	} else {
 		d = h.Name()
 	}
 
 	return filepath.Join(
 		cacheDir(),
-		h.repo,
+		h.Repo,
 		d,
 	)
 }

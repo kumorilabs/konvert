@@ -34,12 +34,14 @@ spec:
         - name: PGDATA
           value: /bitnami/postgresql/data
         - name: POSTGRES_USER
-          value: postgres
+          value: testuser
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               key: postgresql-password
-              name: postgresql
+              name: fore-postgresql
+        - name: POSTGRES_DB
+          value: testdb
         image: docker.io/bitnami/postgresql:11.4.0-debian-9-r12
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -47,7 +49,7 @@ spec:
             command:
             - sh
             - -c
-            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+            - exec pg_isready -U "testuser" -d "testdb" -h 127.0.0.1 -p 5432
           failureThreshold: 6
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -63,7 +65,7 @@ spec:
             - sh
             - -c
             - |
-              pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+              pg_isready -U "testuser" -d "testdb" -h 127.0.0.1 -p 5432
               [ -f /opt/bitnami/postgresql/tmp/.initialized ]
           failureThreshold: 6
           initialDelaySeconds: 5

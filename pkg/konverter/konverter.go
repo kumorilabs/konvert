@@ -99,7 +99,7 @@ func (k *Konverter) getSource() error {
 	t := strings.ToLower(k.konfig.Source.Type)
 	switch t {
 	case "helm":
-		s, err := getHelmSource(k.konfig.Source.Config)
+		s, err := sources.NewHelmSourceFromConfig(k.konfig.Source.Config)
 		if err != nil {
 			return err
 		}
@@ -113,24 +113,6 @@ func (k *Konverter) getSource() error {
 	}
 
 	return nil
-}
-
-func getHelmSource(config map[string]interface{}) (sources.Source, error) {
-	var helmConfig *helmSourceConfig
-	if err := unmarshalConfig(config, &helmConfig); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling helm source config")
-	}
-
-	// TODO: validate helmConfig
-	return sources.NewHelmSource(helmConfig.Name, helmConfig.Version), nil
-}
-
-func unmarshalConfig(config, configOut interface{}) error {
-	b, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-	return yaml.Unmarshal(b, configOut)
 }
 
 func resourceFileName(res sources.Resource) string {

@@ -4,6 +4,5 @@ package sources
 type Source interface {
 	Fetch() error
 	Generate() ([]Resource, error)
-	Kustomize() error
 	Name() string
 }

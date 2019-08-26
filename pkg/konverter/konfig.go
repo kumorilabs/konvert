@@ -23,12 +23,6 @@ type konvertSource struct {
 	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
-type helmSourceConfig struct {
-	Name    string                 `json:"name,omitempty" yaml:"name,omitempty"`
-	Version string                 `json:"version,omitempty" yaml:"version,omitempty"`
-	Values  map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
-}
-
 // LoadConfig loads Konfig from a yaml file
 func LoadConfig() (*Konfig, error) {
 	workingDir, err := os.Getwd()
