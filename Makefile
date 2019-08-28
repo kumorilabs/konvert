@@ -7,7 +7,7 @@ all: test build
 
 .PHONY: build
 build:
-	go build
+	go build -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
 
 .PHONY: test
 test:
@@ -17,7 +17,12 @@ test:
 testv:
 	go test -v ./...
 
+.PHONY: install
+install:
+	go install -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
+
 docker: build
+	# TODO: fix Version
 	CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
 	docker build -t ryane/konvert:${GIT_SHA}${GIT_DIRTY} .
 
