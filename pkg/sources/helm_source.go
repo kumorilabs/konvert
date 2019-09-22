@@ -131,6 +131,7 @@ func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 	args := []string{
 		"template",
 		"--name", h.Name(),
+		"--namespace=\"\"",
 	}
 
 	if valuesFile != "" {
