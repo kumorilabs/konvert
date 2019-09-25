@@ -3,9 +3,6 @@ kind: Service
 metadata:
   labels:
     app: postgresql
-    chart: postgresql-5.3.12
-    heritage: Tiller
-    release: postgresql
   name: postgresql
 spec:
   ports:
@@ -14,6 +11,5 @@ spec:
     targetPort: postgresql
   selector:
     app: postgresql
-    release: postgresql
     role: master
   type: ClusterIP

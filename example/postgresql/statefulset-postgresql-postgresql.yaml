@@ -3,25 +3,18 @@ kind: StatefulSet
 metadata:
   labels:
     app: postgresql
-    chart: postgresql-5.3.12
-    heritage: Tiller
-    release: postgresql
   name: postgresql-postgresql
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: postgresql
-      release: postgresql
       role: master
   serviceName: postgresql-headless
   template:
     metadata:
       labels:
         app: postgresql
-        chart: postgresql-5.3.12
-        heritage: Tiller
-        release: postgresql
         role: master
       name: postgresql
     spec:
@@ -39,7 +32,7 @@ spec:
           valueFrom:
             secretKeyRef:
               key: postgresql-password
-              name: fore-postgresql
+              name: postgresql
         - name: POSTGRES_DB
           value: testdb
         image: docker.io/bitnami/postgresql:11.4.0-debian-9-r12
