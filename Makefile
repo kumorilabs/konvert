@@ -31,3 +31,6 @@ push: docker
 
 example: build
 	cd example; ../konvert
+
+deploy-example: example
+	kustomize build example | kubectl apply -f -

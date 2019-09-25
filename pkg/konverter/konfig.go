@@ -23,14 +23,19 @@ type konvertSource struct {
 	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
-// LoadConfig loads Konfig from a yaml file
-func LoadConfig() (*Konfig, error) {
+// LoadLocalConfig loads Konfig from a yaml file in the current working
+// directory
+func LoadLocalConfig() (*Konfig, error) {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting working directory")
 	}
+	return LoadConfig(workingDir)
+}
 
-	konvertFile := filepath.Join(workingDir, konvertFileName)
+// LoadConfig loads Konfig from a yaml file
+func LoadConfig(konvertDir string) (*Konfig, error) {
+	konvertFile := filepath.Join(konvertDir, konvertFileName)
 	data, err := ioutil.ReadFile(konvertFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading %s", konvertFile)
@@ -45,6 +50,6 @@ func LoadConfig() (*Konfig, error) {
 		)
 	}
 
-	konfig.konvertDirectory = workingDir
+	konfig.konvertDirectory = konvertDir
 	return konfig, nil
 }

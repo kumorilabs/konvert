@@ -46,7 +46,7 @@ func newRootCommand(args []string) *cobra.Command {
 
 func (r *root) run() error {
 	// load config
-	config, err := konverter.LoadConfig()
+	config, err := konverter.LoadLocalConfig()
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// TODO: these need to be configurable
+var transformers = []Transformer{
+	NewRemoveLabelsTransformer(
+		RemoveLabelsTransformerConfig{Names: []string{
+			"chart",
+			"heritage",
+			"release",
+		}},
+	),
+}
+
 // Konverter converts sources into Kustomize bases
 type Konverter struct {
 	konfig                 *Konfig
@@ -33,17 +44,29 @@ func New(konfig *Konfig) *Konverter {
 
 // Run runs konverts the source
 func (k *Konverter) Run() error {
-	if err := k.getSource(); err != nil {
+	var (
+		resources []sources.Resource
+		err       error
+	)
+
+	if err = k.getSource(); err != nil {
 		return errors.Wrap(err, "error getting source")
 	}
 
-	if err := k.source.Fetch(); err != nil {
+	if err = k.source.Fetch(); err != nil {
 		return errors.Wrap(err, "error fetching source")
 	}
 
-	resources, err := k.source.Generate()
+	resources, err = k.source.Generate()
 	if err != nil {
 		return errors.Wrap(err, "error generating source")
+	}
+
+	for _, t := range transformers {
+		resources, err = t.Transform(resources)
+		if err != nil {
+			return errors.Wrapf(err, "error running %s transformer", t.Name())
+		}
 	}
 
 	return k.writeResources(resources)
