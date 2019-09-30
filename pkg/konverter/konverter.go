@@ -69,7 +69,55 @@ func (k *Konverter) Run() error {
 		}
 	}
 
-	return k.writeResources(resources)
+	if err := k.writeResources(resources); err != nil {
+		return errors.Wrap(err, "error writing konverted resources")
+	}
+
+	return k.writeRootResources()
+}
+
+func (k *Konverter) writeRootResources() error {
+	kustfile := NewKustomization()
+	kustfilename := filepath.Join(k.konfig.konvertDirectory, "kustomization.yaml")
+
+	if k.source.CreateNamespace() {
+		namespaceName := k.source.Namespace()
+		namespaceLabels := k.source.NamespaceLabels()
+
+		resobj := map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Namespace",
+			"metadata": map[string]interface{}{
+				"name":   namespaceName,
+				"labels": namespaceLabels,
+			},
+		}
+
+		data, err := yaml.Marshal(resobj)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"error marshaling namespace %q into yaml",
+				namespaceName,
+			)
+		}
+		// TODO: check if exists?
+		nsfile := "namespace.yaml"
+		err = ioutil.WriteFile(nsfile, data, 0644)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"error writing namespace to %s",
+				nsfile,
+			)
+		}
+		kustfile.AddResource(nsfile)
+	}
+
+	kustfile.AddResource(k.source.Name())
+	// TODO: check if exists?
+	kustfile.Save(kustfilename)
+	return nil
 }
 
 func (k *Konverter) writeResources(resources []sources.Resource) error {

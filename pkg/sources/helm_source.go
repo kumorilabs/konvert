@@ -18,15 +18,15 @@ import (
 
 // helmSource represents a helm chart
 type helmSource struct {
-	Repo      string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
-	ChartName string                 `json:"name,omitempty" yaml:"name,omitempty"`
-	Version   string                 `json:"version,omitempty" yaml:"version,omitempty"`
-	Namespace namespace              `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Values    map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
-	log       *log.Entry
+	Repo            string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
+	ChartName       string                 `json:"name,omitempty" yaml:"name,omitempty"`
+	Version         string                 `json:"version,omitempty" yaml:"version,omitempty"`
+	Values          map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
+	NamespaceConfig namespaceConfig        `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	log             *log.Entry
 }
 
-type namespace struct {
+type namespaceConfig struct {
 	Name   string            `json:"name,omitempty" yaml:"name,omitempty"`
 	Create bool              `json:"create,omitempty" yaml:"create,omitempty"`
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
@@ -134,11 +134,26 @@ func (h *helmSource) Name() string {
 	return h.ChartName
 }
 
+// Namespace returns the namespace this chart will be installed in
+func (h *helmSource) Namespace() string {
+	return h.NamespaceConfig.Name
+}
+
+// CreateNamespace returns true if the source include a Namespace resource
+func (h *helmSource) CreateNamespace() bool {
+	return h.NamespaceConfig.Create
+}
+
+// NamespaceLabels returns the labels that should be set on the namespace (if create)
+func (h *helmSource) NamespaceLabels() map[string]string {
+	return h.NamespaceConfig.Labels
+}
+
 func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 	args := []string{
 		"template",
 		"--name", h.Name(),
-		"--namespace", h.Namespace.Name,
+		"--namespace", h.Namespace(),
 	}
 
 	if valuesFile != "" {
