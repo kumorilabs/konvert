@@ -21,8 +21,15 @@ type helmSource struct {
 	Repo      string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
 	ChartName string                 `json:"name,omitempty" yaml:"name,omitempty"`
 	Version   string                 `json:"version,omitempty" yaml:"version,omitempty"`
+	Namespace namespace              `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	Values    map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 	log       *log.Entry
+}
+
+type namespace struct {
+	Name   string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Create bool              `json:"create,omitempty" yaml:"create,omitempty"`
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 // NewHelmSourceFromConfig creates a new Helm Source from a config map
@@ -131,7 +138,7 @@ func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 	args := []string{
 		"template",
 		"--name", h.Name(),
-		"--namespace=\"\"",
+		"--namespace", h.Namespace.Name,
 	}
 
 	if valuesFile != "" {
