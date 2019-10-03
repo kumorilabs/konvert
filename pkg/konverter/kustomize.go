@@ -21,6 +21,7 @@ type Kustomization struct {
 	Kind       string   `json:"kind,omitempty" yaml:"kind,omitempty"`
 	APIVersion string   `json:"apiVersion,omitempty" yaml:"apiversion,omitempty"`
 	Resources  []string `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Namespace  string   `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 }
 
 // NewKustomization creates a new Kustomization
@@ -35,6 +36,10 @@ func NewKustomization() *Kustomization {
 // AddResource adds a resource filenames to a Kustomization
 func (k *Kustomization) AddResource(filename string) {
 	k.Resources = append(k.Resources, filename)
+}
+
+func (k *Kustomization) SetNamespace(ns string) {
+	k.Namespace = ns
 }
 
 // Save persists a kustomization to a file as yaml

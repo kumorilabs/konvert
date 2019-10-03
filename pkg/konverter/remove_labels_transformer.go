@@ -82,7 +82,7 @@ func (t *RemoveLabelsTransformer) removeLabelsAtPath(fieldPath []string, m map[s
 	newPath := fieldPath[1:]
 	switch valtype := rawval.(type) {
 	case nil:
-		log.Debugf("no labels to remove at %s for %s", firstField)
+		log.Debugf("no labels to remove at %s", firstField)
 	case map[string]interface{}:
 		return t.removeLabelsAtPath(newPath, valtype)
 	case []interface{}:

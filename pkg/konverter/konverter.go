@@ -79,18 +79,22 @@ func (k *Konverter) Run() error {
 func (k *Konverter) writeRootResources() error {
 	kustfile := NewKustomization()
 	kustfilename := filepath.Join(k.konfig.konvertDirectory, "kustomization.yaml")
+	namespaceName := k.source.Namespace()
 
-	if k.source.CreateNamespace() {
-		namespaceName := k.source.Namespace()
+	if k.source.CreateNamespace() && namespaceName != "" {
 		namespaceLabels := k.source.NamespaceLabels()
 
 		resobj := map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "Namespace",
 			"metadata": map[string]interface{}{
-				"name":   namespaceName,
-				"labels": namespaceLabels,
+				"name": namespaceName,
 			},
+		}
+
+		if len(namespaceLabels) > 0 {
+			md := resobj["metadata"].(map[string]interface{})
+			md["labels"] = namespaceLabels
 		}
 
 		data, err := yaml.Marshal(resobj)
@@ -112,6 +116,10 @@ func (k *Konverter) writeRootResources() error {
 			)
 		}
 		kustfile.AddResource(nsfile)
+	}
+
+	if namespaceName != "" {
+		kustfile.SetNamespace(namespaceName)
 	}
 
 	kustfile.AddResource(k.source.Name())

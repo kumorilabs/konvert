@@ -3,6 +3,9 @@ source:
   config:
     name: stable/postgresql
     version: 5.3.12
+    namespace:
+      name: konvert-testing
+      create: true
     values:
       global:
         postgresql:
