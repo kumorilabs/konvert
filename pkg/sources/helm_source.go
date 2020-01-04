@@ -23,6 +23,7 @@ type helmSource struct {
 	Version         string                 `json:"version,omitempty" yaml:"version,omitempty"`
 	Values          map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 	NamespaceConfig namespaceConfig        `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	localChart      bool
 	log             *log.Entry
 }
 
@@ -56,6 +57,10 @@ func NewHelmSourceFromConfig(config map[string]interface{}) (Source, error) {
 		}
 	}
 
+	if source.Repo == "." {
+		source.localChart = true
+	}
+
 	source.log = log.WithFields(log.Fields{
 		"pkg":    "sources",
 		"source": "helm",
@@ -66,6 +71,11 @@ func NewHelmSourceFromConfig(config map[string]interface{}) (Source, error) {
 
 // Fetch downloads the source
 func (h *helmSource) Fetch() error {
+	if h.localChart {
+		h.log.Debug("using local chart, skipping fetch")
+		return nil
+	}
+
 	chartYaml := filepath.Join(h.chartDir(), h.Name(), "Chart.yaml")
 	if _, err := os.Stat(chartYaml); err == nil {
 		// chart is already extracted, return
@@ -221,6 +231,9 @@ func (h *helmSource) decode(in io.Reader) ([]Resource, error) {
 }
 
 func (h *helmSource) chartDir() string {
+	if h.localChart {
+		return "."
+	}
 	var d string
 	if h.Version != "" {
 		d = fmt.Sprintf("%s-%s", h.Name(), h.Version)
