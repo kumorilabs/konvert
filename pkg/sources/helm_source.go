@@ -152,7 +152,7 @@ func (h *helmSource) NamespaceLabels() map[string]string {
 func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 	args := []string{
 		"template",
-		"--name", h.Name(),
+		h.Name(),
 		"--namespace", h.Namespace(),
 	}
 
