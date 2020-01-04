@@ -122,7 +122,7 @@ func (k *Konverter) writeRootResources() error {
 		kustfile.SetNamespace(namespaceName)
 	}
 
-	kustfile.AddResource(k.source.Name())
+	kustfile.AddResource("base")
 	// TODO: check if exists?
 	kustfile.Save(kustfilename)
 	return nil
@@ -185,7 +185,8 @@ func (k *Konverter) getSource() error {
 		k.source = s
 		k.kustomizationDirectory = filepath.Join(
 			k.konfig.konvertDirectory,
-			s.Name(),
+			"base",
+			// s.Name(),
 		)
 	default:
 		return fmt.Errorf("unsupported source type: %s", k.konfig.Source.Type)
