@@ -86,7 +86,12 @@ func (t *RemoveLabelsTransformer) removeLabelsAtPath(fieldPath []string, m map[s
 	case map[string]interface{}:
 		return t.removeLabelsAtPath(newPath, valtype)
 	case []interface{}:
-		return fmt.Errorf("TODO: WTF JUST HAPPENED?")
+		for _, ty := range valtype {
+			err := t.removeLabelsAtPath(newPath, ty.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unexpected type %T: %#v", valtype, valtype)
 	}
