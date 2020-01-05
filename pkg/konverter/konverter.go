@@ -123,9 +123,14 @@ func (k *Konverter) writeRootResources() error {
 	if namespaceName != "" {
 		kustfile.SetNamespace(namespaceName)
 	}
+	kustfile.SetManagedBy("kustomize")
 
 	kustfile.AddResource("base")
-	// TODO: check if exists?
+	// TODO: handle existing kustomization better. merge into existing?
+	if _, err := os.Stat(kustfilename); !os.IsNotExist(err) {
+		k.log.Warnf("%s already exists. will not save", kustfilename)
+		return nil
+	}
 	kustfile.Save(kustfilename)
 	return nil
 }

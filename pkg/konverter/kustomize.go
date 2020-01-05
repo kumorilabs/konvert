@@ -18,10 +18,11 @@ const (
 // Kustomization holds the information needed to generate customized k8s api
 // resources
 type Kustomization struct {
-	Kind       string   `json:"kind,omitempty" yaml:"kind,omitempty"`
-	APIVersion string   `json:"apiVersion,omitempty" yaml:"apiversion,omitempty"`
-	Resources  []string `json:"resources,omitempty" yaml:"resources,omitempty"`
-	Namespace  string   `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Kind         string            `json:"kind,omitempty" yaml:"kind,omitempty"`
+	APIVersion   string            `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
+	Resources    []string          `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Namespace    string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	CommonLabels map[string]string `json:"commonLabels,omitempty" yaml:"commonLabels,omitempty"`
 }
 
 // NewKustomization creates a new Kustomization
@@ -40,6 +41,12 @@ func (k *Kustomization) AddResource(filename string) {
 
 func (k *Kustomization) SetNamespace(ns string) {
 	k.Namespace = ns
+}
+
+func (k *Kustomization) SetManagedBy(managedBy string) {
+	k.CommonLabels = map[string]string{
+		"app.kubernetes.io/managed-by": managedBy,
+	}
 }
 
 // Save persists a kustomization to a file as yaml
