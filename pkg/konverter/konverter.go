@@ -20,6 +20,7 @@ var transformers = []Transformer{
 			"chart",
 			"heritage",
 			"release",
+			"helm.sh/chart",
 		}},
 	),
 }
@@ -79,6 +80,7 @@ func (k *Konverter) Run() error {
 func (k *Konverter) writeRootResources() error {
 	kustfile := NewKustomization()
 	kustfilename := filepath.Join(k.konfig.konvertDirectory, "kustomization.yaml")
+
 	namespaceName := k.source.Namespace()
 
 	if k.source.CreateNamespace() && namespaceName != "" {
