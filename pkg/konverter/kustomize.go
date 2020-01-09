@@ -2,6 +2,7 @@ package konverter
 
 import (
 	"io/ioutil"
+	"sort"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -51,6 +52,12 @@ func (k *Kustomization) SetManagedBy(managedBy string) {
 
 // Save persists a kustomization to a file as yaml
 func (k *Kustomization) Save(filename string) error {
+
+	// sort resources
+	resources := k.Resources
+	sort.Strings(resources)
+	k.Resources = resources
+
 	data, err := yaml.Marshal(k)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling kustomization to yaml")
