@@ -28,7 +28,7 @@ func NewRemoveLabelsTransformer(c RemoveLabelsTransformerConfig) *RemoveLabelsTr
 	}
 }
 
-func (t *RemoveLabelsTransformer) Name() string { return "LabelTransformer" }
+func (t *RemoveLabelsTransformer) Name() string { return "RemoveLabelsTransformer" }
 
 func (t *RemoveLabelsTransformer) Transform(resources []sources.Resource) ([]sources.Resource, error) {
 	for _, res := range resources {

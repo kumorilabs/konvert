@@ -146,7 +146,11 @@ func (h *helmSource) Name() string {
 
 // Namespace returns the namespace this chart will be installed in
 func (h *helmSource) Namespace() string {
-	return h.NamespaceConfig.Name
+	ns := h.NamespaceConfig.Name
+	if ns == "" {
+		ns = h.Name()
+	}
+	return ns
 }
 
 // CreateNamespace returns true if the source include a Namespace resource
