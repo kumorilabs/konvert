@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kumorilabs/konvert/pkg/sources"
 	"github.com/pkg/errors"
-	"github.com/ryane/konvert/pkg/sources"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -1,7 +1,7 @@
 package konverter
 
 import (
-	"github.com/ryane/konvert/pkg/sources"
+	"github.com/kumorilabs/konvert/pkg/sources"
 )
 
 type Transformer interface {
