@@ -7,7 +7,7 @@ all: test build
 
 .PHONY: build
 build:
-	go build -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
+	go build -ldflags "-w -X github.com/kumorilabs/konvert/cmd.Version=${GIT_BRANCH} -X github.com/kumorilabs/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
 
 .PHONY: test
 test:
@@ -19,15 +19,15 @@ testv:
 
 .PHONY: install
 install:
-	go install -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
+	go install -ldflags "-w -X github.com/kumorilabs/konvert/cmd.Version=${GIT_BRANCH} -X github.com/kumorilabs/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
 
 docker: build
 	# TODO: fix Version
-	CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags "-w -X github.com/ryane/konvert/cmd.Version=${GIT_BRANCH} -X github.com/ryane/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
-	docker build -t ryane/konvert:${GIT_SHA}${GIT_DIRTY} .
+	CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags "-w -X github.com/kumorilabs/konvert/cmd.Version=${GIT_BRANCH} -X github.com/kumorilabs/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
+	docker build -t kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY} .
 
 push: docker
-	docker push ryane/konvert:${GIT_SHA}${GIT_DIRTY}
+	docker push kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY}
 
 example: build
 	cd example; ../konvert
