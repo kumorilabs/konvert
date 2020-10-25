@@ -124,9 +124,22 @@ func (h *helmSource) Generate() ([]Resource, error) {
 	}
 
 	cmd := h.templateCommand(valuesFile)
-	out, err := cmd.CombinedOutput()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	out := stdout.Bytes()
+	outErr := stderr.Bytes()
+
+	h.log.Debugf("template command: Stdout:%s", out)
+	h.log.Debugf("template command: Stderr:%s", outErr)
+
 	if err != nil {
-		return nil, errors.Wrapf(err, "error running template command: %q", string(out))
+		return nil, errors.Wrapf(err, "error running template command: %s\n", outErr)
+	}
+
+	if len(outErr) > 0 {
+		h.log.Infof("template command error output: %s", outErr)
 	}
 
 	resources, err := h.decode(bytes.NewReader(out))
@@ -168,6 +181,7 @@ func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 		"template",
 		h.Name(),
 		"--namespace", h.Namespace(),
+		"--no-hooks",
 	}
 
 	if valuesFile != "" {
