@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ryane/konvert/pkg/konverter"
+	"github.com/kumorilabs/konvert/pkg/konverter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

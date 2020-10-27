@@ -1,0 +1,24 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+resources:
+- configmap-xray-postgresql-extended-configuration.yaml
+- configmap-xray-rabbitmq-ha.yaml
+- networkpolicy-xray-xray-networkpolicy.yaml
+- role-xray-rabbitmq-ha.yaml
+- role-xray.yaml
+- rolebinding-xray-rabbitmq-ha.yaml
+- rolebinding-xray.yaml
+- secret-xray-postgresql.yaml
+- secret-xray-rabbitmq-ha.yaml
+- secret-xray-system-yaml.yaml
+- secret-xray.yaml
+- service-xray-postgresql-headless.yaml
+- service-xray-postgresql.yaml
+- service-xray-rabbitmq-ha-discovery.yaml
+- service-xray-rabbitmq-ha.yaml
+- service-xray.yaml
+- serviceaccount-xray-rabbitmq-ha.yaml
+- serviceaccount-xray.yaml
+- statefulset-xray-postgresql.yaml
+- statefulset-xray-rabbitmq-ha.yaml
+- statefulset-xray.yaml

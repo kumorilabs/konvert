@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/ryane/konvert/cmd"
+	"github.com/kumorilabs/konvert/cmd"
 	log "github.com/sirupsen/logrus"
 )
 

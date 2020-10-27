@@ -1,0 +1,11 @@
+source:
+  type: helm
+  config:
+    name: center/jfrog/xray
+    version: 6.2.1
+    namespace:
+      name: zero
+      create: true
+    values:
+      xray:
+        jfrogUrl: https://artifactory.cnative.io

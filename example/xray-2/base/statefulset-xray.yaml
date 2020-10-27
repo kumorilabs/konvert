@@ -1,0 +1,325 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: xray
+    component: xray
+  name: xray
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xray
+      component: xray
+  serviceName: xray
+  template:
+    metadata:
+      annotations:
+        checksum/systemyaml: 77f139c3ed984c790003411fdd059500f563e137aa1a14f2df85a0880cf80a95
+      labels:
+        app: xray
+        component: xray
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          sleep 10; /opt/jfrog/router/app/bin/entrypoint-router.sh;
+        image: docker.bintray.io/jfrog/router:1.4.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /router/api/v1/system/health
+            port: 8082
+            scheme: HTTP
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: router
+        ports:
+        - containerPort: 8082
+          name: router
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /router/api/v1/system/health
+            port: 8082
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/router
+          name: data-volume
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          /opt/jfrog/xray/app/bin/wrapper.sh;
+        env:
+        - name: JF_SHARED_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgresql-password
+              name: xray-postgresql
+        - name: JF_SHARED_RABBITMQ_USERNAME
+          value: guest
+        - name: JF_SHARED_RABBITMQ_URL
+          value: amqp://xray-rabbitmq-ha:5672/
+        - name: JF_SHARED_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq-password
+              name: xray-rabbitmq-ha
+        image: docker.bintray.io/jfrog/xray-server:3.10.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/v1/system/ping
+            port: 8000
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: xray-server
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/v1/system/ping
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/xray
+          name: data-volume
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          /opt/jfrog/xray/app/bin/wrapper.sh;
+        env:
+        - name: JF_SHARED_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgresql-password
+              name: xray-postgresql
+        - name: JF_SHARED_RABBITMQ_USERNAME
+          value: guest
+        - name: JF_SHARED_RABBITMQ_URL
+          value: amqp://xray-rabbitmq-ha:5672/
+        - name: JF_SHARED_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq-password
+              name: xray-rabbitmq-ha
+        - name: XRAY_HA_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: XRAY_K8S_ENV
+          value: "true"
+        image: docker.bintray.io/jfrog/xray-analysis:3.10.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7000
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: xray-analysis
+        ports:
+        - containerPort: 7000
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/xray
+          name: data-volume
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          /opt/jfrog/xray/app/bin/wrapper.sh;
+        env:
+        - name: JF_SHARED_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgresql-password
+              name: xray-postgresql
+        - name: JF_SHARED_RABBITMQ_USERNAME
+          value: guest
+        - name: JF_SHARED_RABBITMQ_URL
+          value: amqp://xray-rabbitmq-ha:5672/
+        - name: JF_SHARED_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq-password
+              name: xray-rabbitmq-ha
+        - name: XRAY_HA_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: XRAY_K8S_ENV
+          value: "true"
+        image: docker.bintray.io/jfrog/xray-indexer:3.10.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7002
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: xray-indexer
+        ports:
+        - containerPort: 7002
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7002
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/xray
+          name: data-volume
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          /opt/jfrog/xray/app/bin/wrapper.sh;
+        env:
+        - name: JF_SHARED_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgresql-password
+              name: xray-postgresql
+        - name: JF_SHARED_RABBITMQ_USERNAME
+          value: guest
+        - name: JF_SHARED_RABBITMQ_URL
+          value: amqp://xray-rabbitmq-ha:5672/
+        - name: JF_SHARED_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rabbitmq-password
+              name: xray-rabbitmq-ha
+        - name: XRAY_K8S_ENV
+          value: "true"
+        image: docker.bintray.io/jfrog/xray-persist:3.10.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7003
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: xray-persist
+        ports:
+        - containerPort: 7003
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/v1/system/ping
+            port: 7003
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/xray
+          name: data-volume
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Copy system.yaml to /var/opt/jfrog/xray/etc"; mkdir -p /var/opt/jfrog/xray/etc; cp -fv /tmp/etc/system.yaml /var/opt/jfrog/xray/etc/system.yaml; echo "Remove /var/opt/jfrog/xray/lost+found folder if exists"; rm -rfv /var/opt/jfrog/xray/lost+found; echo "Copy joinKey to /var/opt/jfrog/xray/etc/security"; mkdir -p /var/opt/jfrog/xray/etc/security; echo ${XRAY_JOIN_KEY} > /var/opt/jfrog/xray/etc/security/join.key; echo "Copy masterKey to /var/opt/jfrog/xray/etc/security"; mkdir -p /var/opt/jfrog/xray/etc/security; echo ${XRAY_MASTER_KEY} > /var/opt/jfrog/xray/etc/security/master.key;
+        env:
+        - name: XRAY_JOIN_KEY
+          valueFrom:
+            secretKeyRef:
+              key: join-key
+              name: xray
+        - name: XRAY_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              key: master-key
+              name: xray
+        image: docker.bintray.io/alpine:3.12
+        name: copy-system-yaml
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/opt/jfrog/xray
+          name: data-volume
+        - mountPath: /tmp/etc/system.yaml
+          name: systemyaml
+          subPath: system.yaml
+      - command:
+        - sh
+        - -c
+        - |
+          until nc -z -w 2 xray-postgresql 5432 && echo database ok; do
+            sleep 2;
+          done;
+        image: docker.bintray.io/alpine:3.12
+        name: wait-for-db
+        resources: {}
+      securityContext:
+        fsGroup: 1035
+        runAsUser: 1035
+      serviceAccountName: xray
+      volumes:
+      - name: systemyaml
+        secret:
+          secretName: xray-system-yaml
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: data-volume
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi

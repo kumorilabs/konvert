@@ -1,0 +1,11 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+resources:
+- clusterrole-mysql-operator.yaml
+- clusterrolebinding-mysql-operator.yaml
+- configmap-mysql-operator-orc.yaml
+- secret-mysql-operator-orc.yaml
+- service-mysql-operator-0-svc.yaml
+- service-mysql-operator.yaml
+- serviceaccount-mysql-operator.yaml
+- statefulset-mysql-operator.yaml
