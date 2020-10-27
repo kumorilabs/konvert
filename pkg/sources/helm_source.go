@@ -19,6 +19,7 @@ import (
 // helmSource represents a helm chart
 type helmSource struct {
 	Repo            string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
+	RepoSubPath     string                 `json:"repoSubPath,omitempty" yaml:"repoSubPath,omitempty"`
 	ChartName       string                 `json:"name,omitempty" yaml:"name,omitempty"`
 	Version         string                 `json:"version,omitempty" yaml:"version,omitempty"`
 	Values          map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
@@ -51,11 +52,22 @@ func NewHelmSourceFromConfig(config map[string]interface{}) (Source, error) {
 
 	if strings.Contains(source.ChartName, "/") {
 		nameParts := strings.Split(source.ChartName, "/")
+		log.Debug("nameParts length is: ", len(nameParts))
 		if len(nameParts) > 1 {
 			source.Repo = nameParts[0]
-			source.ChartName = nameParts[1]
+			source.ChartName = nameParts[len(nameParts)-1]
+
+			if len(nameParts) > 2 {
+				repoSubPath := strings.Join(nameParts[1:len(nameParts)-1], "/")
+
+				source.RepoSubPath = repoSubPath
+			}
 		}
 	}
+
+	log.Debug("ChartName is: ", source.ChartName)
+	log.Debug("Repo is: ", source.Repo)
+	log.Debug("RepoSubPath is: ", source.RepoSubPath)
 
 	if source.Repo == "." {
 		source.localChart = true
@@ -101,15 +113,17 @@ func (h *helmSource) Fetch() error {
 func (h *helmSource) Generate() ([]Resource, error) {
 	var valuesFile string
 
+	h.log.Debugf("Values are is: %s", h.Values)
+
 	if len(h.Values) > 0 {
 		tmpfile, err := ioutil.TempFile("", fmt.Sprintf("konvert-%s-*", h.Name()))
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating values file")
 		}
 
-		defer func() {
-			_ = os.Remove(tmpfile.Name())
-		}()
+		// defer func() {
+		// 	_ = os.Remove(tmpfile.Name())
+		// }()
 
 		b, err := yaml.Marshal(h.Values)
 		if err != nil {
@@ -122,6 +136,8 @@ func (h *helmSource) Generate() ([]Resource, error) {
 
 		valuesFile = tmpfile.Name()
 	}
+
+	h.log.Debugf("Values file is: %s", valuesFile)
 
 	cmd := h.templateCommand(valuesFile)
 	var stdout, stderr bytes.Buffer
@@ -181,7 +197,6 @@ func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 		"template",
 		h.Name(),
 		"--namespace", h.Namespace(),
-		"--no-hooks",
 	}
 
 	if valuesFile != "" {
@@ -204,10 +219,20 @@ func (h *helmSource) fetchCommand() *exec.Cmd {
 	if h.Version != "" {
 		args = append(args, "--version", h.Version)
 	}
+
+	repo := h.Repo
+	h.log.Debugf("Repo path is : %s", repo)
+
+	h.log.Debugf("RepoSubPath is : %s", h.RepoSubPath)
+	if h.RepoSubPath != "" {
+
+		repo = repo + "/" + h.RepoSubPath
+	}
+
 	args = append(
 		args,
 		"--destination", h.chartDir(),
-		h.Repo+"/"+h.Name(),
+		repo+"/"+h.Name(),
 	)
 	cmd := exec.Command("helm", args...)
 
