@@ -15,7 +15,7 @@ spec:
     metadata:
       annotations:
         checksum/config: 0728c31a378a32b09e3a0e72611f4a3bb3ee5720c1ff9bdd2fc719ae28234ed9
-        checksum/secret: e33ee589345d6d8b7759cb0dd510538bd133ceccad7237ef41c4f6a80a9b145f
+        checksum/secret: bc2090ad17f6e1d31f90f4c3d7322fe7eb2fcc70da306ae816424aee24180abc
       labels:
         app: mysql-operator
     spec:

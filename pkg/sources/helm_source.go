@@ -121,9 +121,9 @@ func (h *helmSource) Generate() ([]Resource, error) {
 			return nil, errors.Wrap(err, "error creating values file")
 		}
 
-		// defer func() {
-		// 	_ = os.Remove(tmpfile.Name())
-		// }()
+		defer func() {
+			_ = os.Remove(tmpfile.Name())
+		}()
 
 		b, err := yaml.Marshal(h.Values)
 		if err != nil {
