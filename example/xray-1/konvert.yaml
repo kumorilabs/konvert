@@ -3,7 +3,6 @@ source:
   config:
     name: xray
     repo: center
-    repoSubPath: jfrog
     version: 6.2.1
     namespace:
       name: zero

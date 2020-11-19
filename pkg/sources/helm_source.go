@@ -69,8 +69,9 @@ func NewHelmSourceFromConfig(config map[string]interface{}) (Source, error) {
 	log.Debug("Repo is: ", source.Repo)
 	log.Debug("RepoSubPath is: ", source.RepoSubPath)
 
-	if source.Repo == "." {
+	if source.Repo == "." || source.Repo == "" {
 		source.localChart = true
+		log.Debug("Local chart detected")
 	}
 
 	source.log = log.WithFields(log.Fields{
@@ -165,6 +166,27 @@ func (h *helmSource) Generate() ([]Resource, error) {
 
 	h.log.Debugf("found %d resources", len(resources))
 
+	crdsDir := filepath.Join(h.chartDirRoot(), "crds")
+	if _, err := os.Stat(crdsDir); !os.IsNotExist(err) {
+
+		files, err := ioutil.ReadDir(crdsDir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error decoding crds: %s\n", err)
+		}
+
+		for _, file := range files {
+			out, err := ioutil.ReadFile(filepath.Join(crdsDir, file.Name()))
+			if err != nil {
+				return nil, errors.Wrapf(err, "error decoding crds: %s\n", err)
+			}
+			crd, err := h.decode(bytes.NewReader(out))
+			if err != nil {
+				return crd, errors.Wrap(err, "error decoding crds")
+			}
+			resources = append(resources, crd...)
+		}
+	}
+
 	return resources, nil
 }
 
@@ -203,7 +225,7 @@ func (h *helmSource) templateCommand(valuesFile string) *exec.Cmd {
 		args = append(args, "-f", valuesFile)
 	}
 
-	args = append(args, filepath.Join(h.chartDir(), h.Name()))
+	args = append(args, filepath.Join(h.chartDirRoot()))
 
 	cmd := exec.Command("helm", args...)
 
@@ -271,6 +293,15 @@ func (h *helmSource) decode(in io.Reader) ([]Resource, error) {
 	}
 
 	return result, nil
+}
+
+func (h *helmSource) chartDirRoot() string {
+	if h.localChart {
+		return filepath.Join(h.chartDir(), h.RepoSubPath, h.Name())
+	}
+
+	return filepath.Join(h.chartDir(), h.Name())
+
 }
 
 func (h *helmSource) chartDir() string {

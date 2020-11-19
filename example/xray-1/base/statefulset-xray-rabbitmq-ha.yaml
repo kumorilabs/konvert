@@ -16,7 +16,7 @@ spec:
     metadata:
       annotations:
         checksum/config: a4c33a1d17e6623105cba04b24122746f1a81a1eecc1d29da86a44596424c41d
-        checksum/secret: 66b91e08abc05b1f5a38c0dc6e6a689bacc8ac0589e18868a6fc972706a3af53
+        checksum/secret: ceb4f22257a4cc195b71c264edf71f2405ecca7f095c3444a8d8fd66945c0018
       labels:
         app: rabbitmq-ha
     spec:
