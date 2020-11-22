@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/api/equality"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -179,15 +180,29 @@ func (h *helmSource) Generate() ([]Resource, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "error decoding crds: %s\n", err)
 			}
-			crd, err := h.decode(bytes.NewReader(out))
+			crds, err := h.decode(bytes.NewReader(out))
 			if err != nil {
-				return crd, errors.Wrap(err, "error decoding crds")
+				return crds, errors.Wrap(err, "error decoding crds")
 			}
-			resources = append(resources, crd...)
+			for _, crd := range crds {
+				if !h.containsResource(resources, crd) {
+					resources = append(resources, crd)
+				}
+			}
 		}
 	}
 
 	return resources, nil
+}
+
+func (h *helmSource) containsResource(resources []Resource, resource Resource) bool {
+
+	for _, r := range resources {
+		if equality.Semantic.DeepEqual(r, resource) {
+			return true
+		}
+	}
+	return false
 }
 
 // Name returns the name of this source
