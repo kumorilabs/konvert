@@ -1,0 +1,48 @@
+apiVersion: v1
+data:
+  enabled_plugins: "[\n  rabbitmq_shovel,\n  rabbitmq_shovel_management,\n  rabbitmq_federation,\n  rabbitmq_federation_management,\n  \n\n  rabbitmq_consistent_hash_exchange,\n  rabbitmq_management,\n  rabbitmq_peer_discovery_k8s\n  \n].\n"
+  rabbitmq.conf: |
+    ## RabbitMQ configuration
+    ## Ref: https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example
+
+    ## Authentification
+
+    ## Clustering
+    cluster_formation.peer_discovery_backend  = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_formation.node_cleanup.interval = 10
+    # Set to false if automatic cleanup of absent nodes is desired.
+    # This can be dangerous, see http://www.rabbitmq.com/cluster-formation.html#node-health-checks-and-cleanup.
+    cluster_formation.node_cleanup.only_log_warning = true
+    cluster_partition_handling = autoheal
+    ## The default "guest" user is only permitted to access the server
+    ## via a loopback interface (e.g. localhost)
+    loopback_users.guest = false
+
+    management.load_definitions = /etc/definitions/definitions.json
+
+    ## Memory-based Flow Control threshold
+    vm_memory_high_watermark.absolute = 500MB
+
+    ## Auth HTTP Backend Plugin
+
+    ## LDAP Plugin
+
+    ## MQTT Plugin
+
+    ## Web MQTT Plugin
+
+    ## STOMP Plugin
+
+    ## Web STOMP Plugin
+
+    ## Prometheus Plugin
+
+    ## AMQPS support
+kind: ConfigMap
+metadata:
+  labels:
+    app: rabbitmq-ha
+  name: xray-rabbitmq-ha
+  namespace: zero
