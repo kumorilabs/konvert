@@ -3,4 +3,6 @@ kind: Konvert
 metadata:
   name: postgresql
 spec:
-  name: postgresql
+  repo: https://charts.bitnami.com/bitnami
+  chart: mysql
+  version: 8.6.2
