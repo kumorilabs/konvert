@@ -40,6 +40,7 @@ func newRootCommand(args []string) *cobra.Command {
 	}
 
 	rootCmd.SetVersionTemplate(`{{.Version}}`)
+	rootCmd.AddCommand(newFnCommand(args))
 
 	return rootCmd
 }
