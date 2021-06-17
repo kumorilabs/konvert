@@ -1,9 +1,0 @@
-source:
-  type: helm
-  config:
-    name: presslabs/mysql-operator
-    version: 0.4.0
-    namespace:
-      name: mysql-operator
-      create: true
-    values: {}
