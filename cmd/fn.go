@@ -7,7 +7,7 @@ import (
 )
 
 func newFnCommand(args []string) *cobra.Command {
-	kp := konvert.KonvertProcessor{}
+	kp := konvert.Processor{}
 	cmd := command.Build(&kp, command.StandaloneEnabled, false)
 	cmd.Use = "fn"
 	// TODO: usage

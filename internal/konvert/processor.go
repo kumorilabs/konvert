@@ -5,16 +5,16 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 )
 
-type KonvertProcessor struct{}
+type Processor struct{}
 
-func (p *KonvertProcessor) Process(resourceList *framework.ResourceList) error {
+func (p *Processor) Process(resourceList *framework.ResourceList) error {
 	err := p.process(resourceList)
 	// TODO: results
 	return err
 }
 
-func (p *KonvertProcessor) process(resourceList *framework.ResourceList) error {
-	var konvert KonvertFunction
+func (p *Processor) process(resourceList *framework.ResourceList) error {
+	var konvert function
 	err := konvert.Config(resourceList.FunctionConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to configure konvert")

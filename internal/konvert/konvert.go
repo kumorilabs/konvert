@@ -9,12 +9,12 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type KonvertFunction struct {
+type function struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
-	Spec               KonvertSpec `yaml:"spec,omitempty"`
+	Spec               spec `yaml:"spec,omitempty"`
 }
 
-func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
+func (f *function) Config(rn *kyaml.RNode) error {
 	yamlstr, err := rn.String()
 	if err != nil {
 		return errors.Wrap(err, "unable to get yaml from rnode")
@@ -25,7 +25,7 @@ func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
 	return nil
 }
 
-func (f *KonvertFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *function) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
 		err := item.PipeE(kyaml.SetAnnotation("managed-by", "konvert"))
 		if err != nil {
@@ -41,8 +41,11 @@ func (f *KonvertFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	return items, nil
 }
 
-type KonvertSpec struct {
-	Name string `yaml:"name,omitempty"`
+type spec struct {
+	Repo    string                 `yaml:"repo,omitempty"`
+	Chart   string                 `yaml:"chart,omitempty"`
+	Version string                 `yaml:"version,omitempty"`
+	Values  map[string]interface{} `json:"values,omitempty"`
 }
 
 func mustServiceAccount(name string) *kyaml.RNode {
