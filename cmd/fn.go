@@ -26,7 +26,8 @@ metadata:
 }
 
 type KonvertFunction struct {
-	Spec KonvertSpec `yaml:"spec,omitempty"`
+	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
+	Spec               KonvertSpec `yaml:"spec,omitempty"`
 }
 
 func (f *KonvertFunction) Config(rn *kyaml.RNode) error {

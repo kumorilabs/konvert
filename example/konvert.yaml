@@ -1,2 +1,6 @@
+apiVersion: runtime.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: postgresql
 spec:
   name: postgresql
