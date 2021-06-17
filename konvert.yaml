@@ -1,9 +1,0 @@
-source:
-  type: helm
-  config:
-    name: ./mysql-operator-1
-    version: 0.4.0
-    namespace:
-      name: mysql-operator
-      create: true
-    values: {}
