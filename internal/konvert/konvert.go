@@ -1,13 +1,18 @@
 package konvert
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+type spec struct {
+	Repo    string                 `yaml:"repo,omitempty"`
+	Chart   string                 `yaml:"chart,omitempty"`
+	Version string                 `yaml:"version,omitempty"`
+	Values  map[string]interface{} `json:"values,omitempty"`
+}
 
 type function struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
@@ -26,37 +31,29 @@ func (f *function) Config(rn *kyaml.RNode) error {
 }
 
 func (f *function) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	nodes, err := f.Render()
+	if err != nil {
+		return items, errors.Wrap(err, "unable to render chart")
+	}
+	items = append(items, nodes...)
+
 	for _, item := range items {
-		err := item.PipeE(kyaml.SetAnnotation("managed-by", "konvert"))
+		err := item.PipeE(kyaml.SetAnnotation("kumorilabs.io/generated-by", "konvert"))
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run konvert filter")
 		}
 	}
-	items = append(items, mustServiceAccount("testing"))
 
-	items, err := filters.MergeFilter{}.Filter(items)
+	for _, item := range items {
+		err := item.PipeE(kyaml.SetLabel("app.kubernetes.io/managed-by", "konvert"))
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run konvert filter")
+		}
+	}
+
+	items, err = filters.MergeFilter{}.Filter(items)
 	if err != nil {
 		return items, errors.Wrap(err, "unable to merge items")
 	}
 	return items, nil
-}
-
-type spec struct {
-	Repo    string                 `yaml:"repo,omitempty"`
-	Chart   string                 `yaml:"chart,omitempty"`
-	Version string                 `yaml:"version,omitempty"`
-	Values  map[string]interface{} `json:"values,omitempty"`
-}
-
-func mustServiceAccount(name string) *kyaml.RNode {
-	a := `
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: %s
-  annotations:
-    config.kubernetes.io/path: base/serviceaccount-%s.yaml
-`
-	yamlstr := fmt.Sprintf(a, name, name)
-	return kyaml.MustParse(yamlstr)
 }
