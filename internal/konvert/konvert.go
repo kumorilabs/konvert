@@ -30,30 +30,47 @@ func (f *function) Config(rn *kyaml.RNode) error {
 	return nil
 }
 
-func (f *function) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	nodes, err := f.Render()
+func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	// render helm chart into rnodes
+	items, err := f.Render()
 	if err != nil {
-		return items, errors.Wrap(err, "unable to render chart")
+		return nodes, errors.Wrap(err, "unable to render chart")
 	}
-	items = append(items, nodes...)
 
+	// run pre-configured filters on rendered helm chart resources
+	// set generated-by annotation
+	// TODO: probably not useful in the end
 	for _, item := range items {
 		err := item.PipeE(kyaml.SetAnnotation("kumorilabs.io/generated-by", "konvert"))
 		if err != nil {
-			return items, errors.Wrap(err, "unable to run konvert filter")
+			return nodes, errors.Wrap(err, "unable to run konvert filter")
 		}
 	}
 
+	// set managed-by label
 	for _, item := range items {
 		err := item.PipeE(kyaml.SetLabel("app.kubernetes.io/managed-by", "konvert"))
 		if err != nil {
-			return items, errors.Wrap(err, "unable to run konvert filter")
+			return nodes, errors.Wrap(err, "unable to run konvert filter")
 		}
 	}
 
-	items, err = filters.MergeFilter{}.Filter(items)
-	if err != nil {
-		return items, errors.Wrap(err, "unable to merge items")
+	// set path for resources
+	for _, item := range items {
+		err := item.PipeE(PathAnnotation("base/%s-%s.yaml"))
+		if err != nil {
+			return nodes, errors.Wrap(err, "unable to run konvert filter")
+		}
 	}
-	return items, nil
+
+	nodes = append(nodes, items...)
+
+	// merge duplicate nodes
+	// to overwrite previously rendered helm resources
+	nodes, err = filters.MergeFilter{}.Filter(nodes)
+	if err != nil {
+		return nodes, errors.Wrap(err, "unable to merge nodes")
+	}
+
+	return nodes, nil
 }
