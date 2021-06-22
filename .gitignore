@@ -19,5 +19,5 @@ output/
 /results/
 
 
-example/mysql/*
+# example/mysql/*
 !example/mysql/konvert.yaml
