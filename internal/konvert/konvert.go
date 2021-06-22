@@ -58,6 +58,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	}
 
 	// set path for resources
+	// TODO: default path to "."
 	for _, item := range items {
 		err := item.PipeE(PathAnnotation(f.Spec.Path, f.Spec.Pattern))
 		if err != nil {

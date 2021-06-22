@@ -77,10 +77,15 @@ resources:
 		resourceList[i] = fmt.Sprintf("- %s", res)
 	}
 
+	name := "kustomization"
+	if f.path != "" && f.path != "." {
+		name = f.path
+	}
+
 	return fmt.Sprintf(
 		template,
 		f.namespace,
-		f.path,
+		name,
 		filepath.Join(f.path, "kustomization.yaml"),
 		strings.Join(resourceList, "\n"),
 	)
