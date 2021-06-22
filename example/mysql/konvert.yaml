@@ -1,10 +1,10 @@
 apiVersion: runtime.kumorilabs.io/v1alpha1
 kind: Konvert
 metadata:
-  name: postgresql
+  name: mysql
 spec:
   chart: mysql
-  path: chart
+  path: .
   pattern: "%s-%s.yaml"
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2
