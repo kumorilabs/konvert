@@ -11,6 +11,7 @@ type spec struct {
 	Repo    string                 `yaml:"repo,omitempty"`
 	Chart   string                 `yaml:"chart,omitempty"`
 	Version string                 `yaml:"version,omitempty"`
+	Path    string                 `yaml:"path,omitempty"`
 	Pattern string                 `yaml:"pattern,omitempty"`
 	Values  map[string]interface{} `json:"values,omitempty"`
 }
@@ -58,7 +59,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 	// set path for resources
 	for _, item := range items {
-		err := item.PipeE(PathAnnotation(f.Spec.Pattern))
+		err := item.PipeE(PathAnnotation(f.Spec.Path, f.Spec.Pattern))
 		if err != nil {
 			return nodes, errors.Wrap(err, "unable to run konvert filter")
 		}

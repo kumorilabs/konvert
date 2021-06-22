@@ -4,6 +4,7 @@ metadata:
   name: postgresql
 spec:
   chart: mysql
-  pattern: "chart/%s-%s.yaml"
+  path: chart
+  pattern: "%s-%s.yaml"
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2

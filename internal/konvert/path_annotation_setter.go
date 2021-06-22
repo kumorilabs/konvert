@@ -2,6 +2,7 @@ package konvert
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -9,11 +10,12 @@ import (
 )
 
 type PathAnnotationSetter struct {
+	path    string
 	pattern string
 }
 
-func PathAnnotation(pattern string) PathAnnotationSetter {
-	return PathAnnotationSetter{pattern}
+func PathAnnotation(path, pattern string) PathAnnotationSetter {
+	return PathAnnotationSetter{path, pattern}
 }
 
 func (f PathAnnotationSetter) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
@@ -34,7 +36,7 @@ func (f PathAnnotationSetter) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
 	err = node.PipeE(
 		kyaml.SetAnnotation(
 			"config.kubernetes.io/path",
-			fmt.Sprintf(f.pattern, kind, name),
+			filepath.Join(f.path, fmt.Sprintf(f.pattern, kind, name)),
 		),
 	)
 	if err != nil {
