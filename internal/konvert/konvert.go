@@ -65,6 +65,13 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		}
 	}
 
+	// TODO: kustomization needs to be optional
+	// TODO: namespace needs to be configurable / optional
+	items, err = Kustomization(f.Spec.Path, "testing").Filter(items)
+	if err != nil {
+		return nodes, errors.Wrap(err, "unable to run kustomization filter")
+	}
+
 	nodes = append(nodes, items...)
 
 	// merge duplicate nodes
