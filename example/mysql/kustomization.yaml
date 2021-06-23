@@ -1,0 +1,12 @@
+namespace: testing
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+resources:
+  - serviceaccount-mysql.yaml
+  - secret-mysql.yaml
+  - configmap-mysql.yaml
+  - service-mysql-headless.yaml
+  - service-mysql.yaml
+  - statefulset-mysql.yaml

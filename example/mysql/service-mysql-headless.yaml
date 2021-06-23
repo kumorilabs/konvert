@@ -1,0 +1,25 @@
+# Source: mysql/templates/primary/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-headless
+  labels:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/managed-by: konvert
+    app.kubernetes.io/name: mysql
+    helm.sh/chart: mysql-8.6.2
+  annotations:
+    kumorilabs.io/generated-by: 'konvert'
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/name: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  clusterIP: None
+  publishNotReadyAddresses: true
