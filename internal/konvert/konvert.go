@@ -40,6 +40,20 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	}
 
 	// run pre-configured filters on rendered helm chart resources
+	// hack to remove `nodePort: null` in service ports
+	// see https://github.com/GoogleContainerTools/kpt/issues/2321
+	for _, item := range items {
+		if item.GetKind() == "Service" {
+			err := item.PipeE(
+				kyaml.Lookup("spec", "ports", "[nodePort=null]"),
+				kyaml.Clear("nodePort"),
+			)
+			if err != nil {
+				return nodes, errors.Wrap(err, "unable to run remove null nodePort from Service")
+			}
+		}
+	}
+
 	// set generated-by annotation
 	// TODO: probably not useful in the end
 	for _, item := range items {
