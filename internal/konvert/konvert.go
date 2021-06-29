@@ -1,19 +1,30 @@
 package konvert
 
 import (
+	"fmt"
+
+	"github.com/kumorilabs/konvert/internal/functions"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-	"sigs.k8s.io/kustomize/kyaml/kio/filters"
+	"gopkg.in/yaml.v3"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+// TODO: this is just another function
+
+const (
+	fnConfigGroup          = "konvert.kumorilabs.io"
+	annotationKonvertChart = fnConfigGroup + "/chart"
+)
+
 type spec struct {
-	Repo    string                 `yaml:"repo,omitempty"`
-	Chart   string                 `yaml:"chart,omitempty"`
-	Version string                 `yaml:"version,omitempty"`
-	Path    string                 `yaml:"path,omitempty"`
-	Pattern string                 `yaml:"pattern,omitempty"`
-	Values  map[string]interface{} `json:"values,omitempty"`
+	Repo      string                 `yaml:"repo,omitempty"`
+	Chart     string                 `yaml:"chart,omitempty"`
+	Version   string                 `yaml:"version,omitempty"`
+	Namespace string                 `yaml:"namespace,omitempty"`
+	Path      string                 `yaml:"path,omitempty"`
+	Pattern   string                 `yaml:"pattern,omitempty"`
+	Kustomize bool                   `yaml:"kustomize,omitempty"`
+	Values    map[string]interface{} `json:"values,omitempty"`
 }
 
 type function struct {
@@ -33,67 +44,105 @@ func (f *function) Config(rn *kyaml.RNode) error {
 }
 
 func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	// render helm chart into rnodes
-	items, err := f.Render()
+	// for each chart instance (repo, version, release?):
+	//   remove previously rendered chart nodes
+	//   render chart nodes
+	//   run functions against rendered chart nodes
+	//   add rendered chart nodes
+
+	annotationKonvertChartValue := fmt.Sprintf("%s,%s", f.Spec.Repo, f.Spec.Chart)
+
+	removeByAnnotations := functions.RemoveByAnnotationsFunction{
+		Annotations: map[string]string{
+			annotationKonvertChart: annotationKonvertChartValue,
+		},
+	}
+
+	nodes, err := removeByAnnotations.Run(nodes)
 	if err != nil {
-		return nodes, errors.Wrap(err, "unable to render chart")
+		return nodes, errors.Wrap(err, "unable to run remove-by-annotations function")
 	}
 
-	// run pre-configured filters on rendered helm chart resources
-	// hack to remove `nodePort: null` in service ports
-	// see https://github.com/GoogleContainerTools/kpt/issues/2321
-	for _, item := range items {
-		if item.GetKind() == "Service" {
-			err := item.PipeE(
-				kyaml.Lookup("spec", "ports", "[nodePort=null]"),
-				kyaml.Clear("nodePort"),
-			)
-			if err != nil {
-				return nodes, errors.Wrap(err, "unable to run remove null nodePort from Service")
-			}
+	runKonvert := func() ([]*kyaml.RNode, error) {
+		var items []*kyaml.RNode
+		renderHelmChart := functions.RenderHelmChartFunction{
+			Repo:      f.Spec.Repo,
+			Chart:     f.Spec.Chart,
+			Version:   f.Spec.Version,
+			Values:    f.Spec.Values,
+			Namespace: f.Spec.Namespace,
 		}
-	}
-
-	// set generated-by annotation
-	// TODO: probably not useful in the end
-	for _, item := range items {
-		err := item.PipeE(kyaml.SetAnnotation("kumorilabs.io/generated-by", "konvert"))
+		items, err := renderHelmChart.Run(items)
 		if err != nil {
-			return nodes, errors.Wrap(err, "unable to run konvert filter")
+			return items, err
 		}
-	}
 
-	// set managed-by label
-	for _, item := range items {
-		err := item.PipeE(kyaml.SetLabel("app.kubernetes.io/managed-by", "konvert"))
+		// run pre-configured functions on rendered helm chart resources
+
+		removeBlankNamespace := functions.RemoveBlankNamespaceFunction{}
+		items, err = removeBlankNamespace.Run(items)
 		if err != nil {
-			return nodes, errors.Wrap(err, "unable to run konvert filter")
+			return items, errors.Wrap(err, "unable to run remove-blank-namespace function")
 		}
-	}
 
-	// set path for resources
-	// TODO: default path to "."
-	for _, item := range items {
-		err := item.PipeE(PathAnnotation(f.Spec.Path, f.Spec.Pattern))
+		setManagedBy := functions.SetManagedByFunction{}
+		items, err = setManagedBy.Run(items)
 		if err != nil {
-			return nodes, errors.Wrap(err, "unable to run konvert filter")
+			return items, errors.Wrap(err, "unable to run managed-by function")
 		}
+
+		setKonvertAnnotations := functions.SetKonvertAnnotationsFunction{
+			Repo:  f.Spec.Repo,
+			Chart: f.Spec.Chart,
+		}
+		items, err = setKonvertAnnotations.Run(items)
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run konvert-annotations function")
+		}
+
+		fixNullNodePorts := functions.FixNullNodePortsFunction{}
+		items, err = fixNullNodePorts.Run(items)
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run fix-null-node-ports function")
+		}
+
+		removeBlankAffinities := functions.RemoveBlankAffinitiesFunction{}
+		items, err = removeBlankAffinities.Run(items)
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run remove-blank-affinities function")
+		}
+
+		setPathAnnotation := functions.SetPathAnnotationFunction{
+			Path:    f.Spec.Path,
+			Pattern: f.Spec.Pattern,
+		}
+		items, err = setPathAnnotation.Run(items)
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run path-annotation function")
+		}
+
+		return items, nil
 	}
 
-	// TODO: kustomization needs to be optional
-	// TODO: namespace needs to be configurable / optional
-	items, err = Kustomization(f.Spec.Path, "testing").Filter(items)
+	items, err := runKonvert()
 	if err != nil {
-		return nodes, errors.Wrap(err, "unable to run kustomization filter")
+		return nodes, err
 	}
 
+	// append newly rendered chart nodes
 	nodes = append(nodes, items...)
 
-	// merge duplicate nodes
-	// to overwrite previously rendered helm resources
-	nodes, err = filters.MergeFilter{}.Filter(nodes)
-	if err != nil {
-		return nodes, errors.Wrap(err, "unable to merge nodes")
+	if f.Spec.Kustomize {
+		kustomizer := functions.KustomizerFunction{
+			Path:                    f.Spec.Path,
+			Namespace:               f.Spec.Namespace,
+			ResourceAnnotationName:  annotationKonvertChart,
+			ResourceAnnotationValue: annotationKonvertChartValue,
+		}
+		nodes, err = kustomizer.Run(nodes)
+		if err != nil {
+			return nodes, errors.Wrap(err, "unable to run kustomizer function")
+		}
 	}
 
 	return nodes, nil
