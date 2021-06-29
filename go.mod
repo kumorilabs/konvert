@@ -8,7 +8,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	helm.sh/helm/v3 v3.6.1
 	k8s.io/apimachinery v0.21.0
 	sigs.k8s.io/kustomize/kyaml v0.10.21
+	sigs.k8s.io/yaml v1.2.0
 )
