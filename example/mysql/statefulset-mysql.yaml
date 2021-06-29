@@ -10,7 +10,8 @@ metadata:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
   annotations:
-    kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+    konvert.kumorilabs.io/generated-by: 'konvert'
 spec:
   replicas: 1
   selector:

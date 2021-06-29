@@ -3,8 +3,10 @@ kind: Konvert
 metadata:
   name: mysql
 spec:
+  # namespace: mysql
   chart: mysql
-  path: .
-  pattern: "%s-%s.yaml"
+  kustomize: true
+  # path: .
+  # pattern: "%s-%s.yaml"
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2

@@ -1,12 +1,11 @@
-namespace: testing
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 metadata:
   name: kustomization
 resources:
-  - serviceaccount-mysql.yaml
-  - secret-mysql.yaml
-  - configmap-mysql.yaml
-  - service-mysql-headless.yaml
-  - service-mysql.yaml
-  - statefulset-mysql.yaml
+  - configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+  - secret-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+  - service-mysql-headless.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+  - service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+  - serviceaccount-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+  - statefulset-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql

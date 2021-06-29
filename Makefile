@@ -30,7 +30,11 @@ push: docker
 	docker push kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY}
 
 example: build
-	cd example; ../konvert
+	kpt fn eval example/mysql --exec ./fn.sh --results-dir results --fn-config example/mysql/konvert.yaml
+	bat results/results.yaml
 
 deploy-example: example
 	kustomize build example | kubectl apply -f -
+
+clean-example:
+	find example/mysql -type f -not -name konvert.yaml -delete
