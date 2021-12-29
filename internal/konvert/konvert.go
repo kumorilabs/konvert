@@ -112,6 +112,12 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			return items, errors.Wrap(err, "unable to run remove-blank-affinities function")
 		}
 
+		removeBlankPodAffinityTermNamespaces := functions.RemoveBlankPodAffinityTermNamespacesFunction{}
+		items, err = removeBlankPodAffinityTermNamespaces.Run(items)
+		if err != nil {
+			return items, errors.Wrap(err, "unable to run remove-blank-pod-affinity-term-namespaces function")
+		}
+
 		setPathAnnotation := functions.SetPathAnnotationFunction{
 			Path:    f.Spec.Path,
 			Pattern: f.Spec.Pattern,
