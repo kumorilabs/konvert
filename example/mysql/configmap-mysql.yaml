@@ -4,16 +4,17 @@ kind: ConfigMap
 metadata:
   name: mysql
   labels:
-    app.kubernetes.io/component: primary
-    app.kubernetes.io/instance: mysql
-    app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/managed-by: konvert
+    app.kubernetes.io/component: primary
   annotations:
-    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
     konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
 data:
-  my.cnf: |-
+  my.cnf: |2-
+
     [mysqld]
     default_authentication_plugin=mysql_native_password
     skip-name-resolve

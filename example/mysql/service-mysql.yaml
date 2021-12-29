@@ -4,22 +4,22 @@ kind: Service
 metadata:
   name: mysql
   labels:
-    app.kubernetes.io/component: primary
-    app.kubernetes.io/instance: mysql
-    app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/managed-by: konvert
+    app.kubernetes.io/component: primary
   annotations:
-    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
     konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
 spec:
   type: ClusterIP
-  selector:
-    app.kubernetes.io/component: primary
-    app.kubernetes.io/instance: mysql
-    app.kubernetes.io/name: mysql
   ports:
-    - name: mysql
-      protocol: TCP
-      port: 3306
-      targetPort: mysql
+  - name: mysql
+    port: 3306
+    protocol: TCP
+    targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/component: primary
