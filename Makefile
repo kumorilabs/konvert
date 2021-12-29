@@ -31,10 +31,13 @@ push: docker
 
 example: build
 	kpt fn eval example/mysql --exec ./fn.sh --results-dir results --fn-config example/mysql/konvert.yaml
-	bat results/results.yaml
+	cat results/results.yaml
 
 deploy-example: example
-	kustomize build example | kubectl apply -f -
+	kustomize build example/mysql | kubectl apply -f -
+
+build-example: example
+	kustomize build example/mysql
 
 clean-example:
 	find example/mysql -type f -not -name konvert.yaml -delete
