@@ -19,15 +19,11 @@ type RemoveBlankNamespaceProcessor struct{}
 func (p *RemoveBlankNamespaceProcessor) Process(resourceList *framework.ResourceList) error {
 	err := p.run(resourceList)
 	if err != nil {
-		resourceList.Result = &framework.Result{
-			Name: fnRemoveBlankNamespaceName,
-			Items: []framework.ResultItem{
-				{
-					Message:  err.Error(),
-					Severity: framework.Error,
-				},
-			},
+		result := &framework.Result{
+			Message:  fmt.Sprintf("error running %s: %v", fnRemoveBlankNamespaceName, err.Error()),
+			Severity: framework.Error,
 		}
+		resourceList.Results = append(resourceList.Results, result)
 	}
 	return err
 }

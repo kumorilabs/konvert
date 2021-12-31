@@ -24,15 +24,11 @@ type SetKonvertAnnotationsProcessor struct{}
 func (p *SetKonvertAnnotationsProcessor) Process(resourceList *framework.ResourceList) error {
 	err := p.run(resourceList)
 	if err != nil {
-		resourceList.Result = &framework.Result{
-			Name: fnSetKonvertAnnotationsName,
-			Items: []framework.ResultItem{
-				{
-					Message:  err.Error(),
-					Severity: framework.Error,
-				},
-			},
+		result := &framework.Result{
+			Message:  fmt.Sprintf("error running %s: %v", fnSetKonvertAnnotationsName, err.Error()),
+			Severity: framework.Error,
 		}
+		resourceList.Results = append(resourceList.Results, result)
 	}
 	return err
 }

@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -42,15 +41,11 @@ type KustomizerProcessor struct{}
 func (p *KustomizerProcessor) Process(resourceList *framework.ResourceList) error {
 	err := p.run(resourceList)
 	if err != nil {
-		resourceList.Result = &framework.Result{
-			Name: fnKustomizerName,
-			Items: []framework.ResultItem{
-				{
-					Message:  err.Error(),
-					Severity: framework.Error,
-				},
-			},
+		result := &framework.Result{
+			Message:  fmt.Sprintf("error running %s: %v", fnKustomizerName, err),
+			Severity: framework.Error,
 		}
+		resourceList.Results = append(resourceList.Results, result)
 	}
 	return err
 }
@@ -87,7 +82,7 @@ func (f *KustomizerFunction) Config(rn *kyaml.RNode) error {
 		if err != nil {
 			return errors.Wrap(err, "unable to get yaml from rnode")
 		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
+		if err := kyaml.Unmarshal([]byte(yamlstr), f); err != nil {
 			return errors.Wrap(err, "unable to unmarshal function config")
 		}
 	default:
@@ -130,7 +125,7 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	}
 
 	// TODO: extract to kyaml Filter?
-	resources, err := kustnode.Pipe(kyaml.LookupCreate(yaml.SequenceNode, "resources"))
+	resources, err := kustnode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
 	if err != nil {
 		return items, errors.Wrap(err, "unable to get kustomization resources node")
 	}
@@ -138,7 +133,7 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	if err != nil {
 		return items, errors.Wrap(err, "unable to read element from kustomization resources")
 	}
-	var preservedResources []*yaml.Node
+	var preservedResources []*kyaml.Node
 	for _, e := range reselems {
 		if e.YNode().LineComment != "# "+resourceComment {
 			preservedResources = append(preservedResources, e.YNode())
@@ -149,7 +144,7 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		return items, errors.Wrap(err, "unable to clear resources field")
 	}
 
-	resources, err = kustnode.Pipe(kyaml.LookupCreate(yaml.SequenceNode, "resources"))
+	resources, err = kustnode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
 	if err != nil {
 		return items, errors.Wrap(err, "unable to get kustomization resources node")
 	}
@@ -175,8 +170,8 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	sort.Strings(kustresources)
 	for _, res := range kustresources {
 		err = resources.PipeE(kyaml.Append(
-			&yaml.Node{
-				Kind:        yaml.ScalarNode,
+			&kyaml.Node{
+				Kind:        kyaml.ScalarNode,
 				Value:       res,
 				LineComment: resourceComment,
 			},

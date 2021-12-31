@@ -19,15 +19,11 @@ type RemoveBlankAffinitiesProcessor struct{}
 func (p *RemoveBlankAffinitiesProcessor) Process(resourceList *framework.ResourceList) error {
 	err := p.run(resourceList)
 	if err != nil {
-		resourceList.Result = &framework.Result{
-			Name: fnSetKonvertAnnotationsName,
-			Items: []framework.ResultItem{
-				{
-					Message:  err.Error(),
-					Severity: framework.Error,
-				},
-			},
+		result := &framework.Result{
+			Message:  fmt.Sprintf("error running %s: %v", fnRemoveBlankAffinitiesName, err.Error()),
+			Severity: framework.Error,
 		}
+		resourceList.Results = append(resourceList.Results, result)
 	}
 	return err
 }

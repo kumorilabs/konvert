@@ -22,15 +22,11 @@ type FixNullNodePortsProcessor struct{}
 func (p *FixNullNodePortsProcessor) Process(resourceList *framework.ResourceList) error {
 	err := p.run(resourceList)
 	if err != nil {
-		resourceList.Result = &framework.Result{
-			Name: fnFixNullNodePortsName,
-			Items: []framework.ResultItem{
-				{
-					Message:  err.Error(),
-					Severity: framework.Error,
-				},
-			},
+		result := &framework.Result{
+			Message:  fmt.Sprintf("error running %s: %v", fnFixNullNodePortsName, err.Error()),
+			Severity: framework.Error,
 		}
+		resourceList.Results = append(resourceList.Results, result)
 	}
 	return err
 }
