@@ -1,0 +1,25 @@
+# Source: mysql/templates/primary/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+    helm.sh/chart: mysql-8.6.2
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/managed-by: konvert
+    app.kubernetes.io/component: primary
+  annotations:
+    konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+spec:
+  type: ClusterIP
+  ports:
+  - name: mysql
+    port: 3306
+    protocol: TCP
+    targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/component: primary

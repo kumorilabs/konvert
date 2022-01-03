@@ -13,7 +13,7 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func TestRenderHelmChartFunctionConfig(t *testing.T) {
+func TestKonvertFunctionConfig(t *testing.T) {
 	var tests = []struct {
 		name              string
 		input             string
@@ -21,6 +21,9 @@ func TestRenderHelmChartFunctionConfig(t *testing.T) {
 		expectedChart     string
 		expectedVersion   string
 		expectedNamespace string
+		expectedPath      string
+		expectedPattern   string
+		expectedKustomize bool
 		expectedValues    map[string]interface{}
 		expectedError     string
 	}{
@@ -35,6 +38,9 @@ data:
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2
   namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
   values:
     architecture: standalone
     image:
@@ -45,6 +51,9 @@ data:
 			expectedChart:     "mysql",
 			expectedVersion:   "8.6.2",
 			expectedNamespace: "mysql",
+			expectedPath:      "upstream",
+			expectedPattern:   "%s_%s.yaml",
+			expectedKustomize: true,
 			expectedValues: map[string]interface{}{
 				"image": map[string]interface{}{
 					"pullPolicy": "Always",
@@ -64,7 +73,7 @@ metadata:
 		{
 			name: "function-config",
 			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
-kind: RenderHelmChart
+kind: Konvert
 metadata:
   name: fnconfig
 spec:
@@ -72,6 +81,9 @@ spec:
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2
   namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
   values:
     architecture: standalone
     image:
@@ -82,6 +94,9 @@ spec:
 			expectedChart:     "mysql",
 			expectedVersion:   "8.6.2",
 			expectedNamespace: "mysql",
+			expectedPath:      "upstream",
+			expectedPattern:   "%s_%s.yaml",
+			expectedKustomize: true,
 			expectedValues: map[string]interface{}{
 				"image": map[string]interface{}{
 					"pullPolicy": "Always",
@@ -93,7 +108,7 @@ spec:
 		{
 			name: "empty-function-config",
 			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
-kind: RenderHelmChart
+kind: Konvert
 metadata:
   name: fnconfig
 `,
@@ -105,12 +120,12 @@ kind: Secret
 metadata:
   name: bad-gvk
 `,
-			expectedError: "`functionConfig` must be a `ConfigMap` or `RenderHelmChart`",
+			expectedError: "`functionConfig` must be a `ConfigMap` or `Konvert`",
 		},
 		{
 			name: "bad-yaml-spec",
 			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
-kind: RenderHelmChart
+kind: Konvert
 metadata:
   name: fnconfig
 spec: |
@@ -122,7 +137,7 @@ spec: |
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var fn RenderHelmChartFunction
+			var fn KonvertFunction
 
 			input, err := kyaml.Parse(test.input)
 			if !assert.NoError(t, err, test.name) {
@@ -148,18 +163,22 @@ spec: |
 			assert.Equal(t, test.expectedChart, fn.Chart, test.name)
 			assert.Equal(t, test.expectedVersion, fn.Version, test.name)
 			assert.Equal(t, test.expectedNamespace, fn.Namespace, test.name)
+			assert.Equal(t, test.expectedPath, fn.Path, test.name)
+			assert.Equal(t, test.expectedPattern, fn.Pattern, test.name)
+			assert.Equal(t, test.expectedKustomize, fn.Kustomize, test.name)
 			assert.Equal(t, test.expectedValues, fn.Values, test.name)
 		})
 	}
 }
 
-func TestRenderHelmChartFilter(t *testing.T) {
+func TestKonvertFilter(t *testing.T) {
 	var tests = []struct {
 		name          string
 		repo          string
 		chart         string
 		version       string
 		namespace     string
+		kustomize     bool
 		values        map[string]interface{}
 		expectedError string
 	}{
@@ -168,7 +187,8 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			repo:      "https://charts.bitnami.com/bitnami",
 			chart:     "mysql",
 			version:   "8.6.2",
-			namespace: "mysql",
+			namespace: "",
+			kustomize: true,
 			values: map[string]interface{}{
 				"auth": map[string]interface{}{
 					"rootPassword": "password",
@@ -209,12 +229,13 @@ func TestRenderHelmChartFilter(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var fn RenderHelmChartFunction
+			var fn KonvertFunction
 			fn.Repo = test.repo
 			fn.Chart = test.chart
 			fn.Version = test.version
 			fn.Namespace = test.namespace
 			fn.Values = test.values
+			fn.Kustomize = test.kustomize
 
 			output, err := fn.Filter([]*kyaml.RNode{})
 			if test.expectedError != "" {
@@ -252,7 +273,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			err = kio.Pipeline{
 				Inputs: []kio.Reader{
 					kio.LocalPackageReader{
-						PackagePath: fmt.Sprintf("./fixtures/render_helm_chart/%s-%s", test.chart, test.version),
+						PackagePath: fmt.Sprintf("./fixtures/konvert/%s-%s", test.chart, test.version),
 					},
 				},
 				Outputs: []kio.Writer{

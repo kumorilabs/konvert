@@ -27,7 +27,7 @@ func newRootCommand(args []string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "konvert",
 		Short: "konvert generates kustomize bases",
-		Long:  `konvert can convert helm charts and kubernetes manifests to kustomize bases`,
+		Long:  `konvert can convert helm charts to kustomize bases or plain kubernetes manifests`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := root.run(); err != nil {
 				log.Error(err)

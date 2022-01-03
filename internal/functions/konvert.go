@@ -1,58 +1,54 @@
-package konvert
+package functions
 
 import (
 	"fmt"
 
-	"github.com/kumorilabs/konvert/internal/functions"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// TODO: this is just another function
-
 const (
-	fnConfigGroup          = "konvert.kumorilabs.io"
-	annotationKonvertChart = fnConfigGroup + "/chart"
+	fnKonvertName = "konvert"
+	fnKonvertKind = "Konvert"
 )
 
-type spec struct {
-	Repo      string                 `yaml:"repo,omitempty"`
-	Chart     string                 `yaml:"chart,omitempty"`
-	Version   string                 `yaml:"version,omitempty"`
-	Namespace string                 `yaml:"namespace,omitempty"`
-	Path      string                 `yaml:"path,omitempty"`
-	Pattern   string                 `yaml:"pattern,omitempty"`
-	Kustomize bool                   `yaml:"kustomize,omitempty"`
-	Values    map[string]interface{} `json:"values,omitempty"`
+type KonvertProcessor struct{}
+
+func (p *KonvertProcessor) Process(resourceList *framework.ResourceList) error {
+	return runFn(&KonvertFunction{}, resourceList)
 }
 
-type function struct {
+type KonvertFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
-	Spec               spec `yaml:"spec,omitempty"`
+	Repo               string                 `yaml:"repo,omitempty"`
+	Chart              string                 `yaml:"chart,omitempty"`
+	Version            string                 `yaml:"version,omitempty"`
+	Namespace          string                 `yaml:"namespace,omitempty"`
+	Path               string                 `yaml:"path,omitempty"`
+	Pattern            string                 `yaml:"pattern,omitempty"`
+	Kustomize          bool                   `yaml:"kustomize,omitempty"`
+	Values             map[string]interface{} `json:"values,omitempty"`
 }
 
-func (f *function) Config(rn *kyaml.RNode) error {
-	yamlstr, err := rn.String()
-	if err != nil {
-		return errors.Wrap(err, "unable to get yaml from rnode")
-	}
-	if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-		return errors.Wrap(err, "unable to unmarshal konvert config")
-	}
-	return nil
+func (f *KonvertFunction) Name() string {
+	return fnKonvertName
 }
 
-func (f *function) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnKonvertKind)
+}
+
+func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	// for each chart instance (repo, version, release?):
 	//   remove previously rendered chart nodes
 	//   render chart nodes
 	//   run functions against rendered chart nodes
 	//   add rendered chart nodes
 
-	annotationKonvertChartValue := fmt.Sprintf("%s,%s", f.Spec.Repo, f.Spec.Chart)
+	annotationKonvertChartValue := fmt.Sprintf("%s,%s", f.Repo, f.Chart)
 
-	removeByAnnotations := functions.RemoveByAnnotationsFunction{
+	removeByAnnotations := RemoveByAnnotationsFunction{
 		Annotations: map[string]string{
 			annotationKonvertChart: annotationKonvertChartValue,
 		},
@@ -65,12 +61,12 @@ func (f *function) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 	runKonvert := func() ([]*kyaml.RNode, error) {
 		var items []*kyaml.RNode
-		renderHelmChart := functions.RenderHelmChartFunction{
-			Repo:      f.Spec.Repo,
-			Chart:     f.Spec.Chart,
-			Version:   f.Spec.Version,
-			Values:    f.Spec.Values,
-			Namespace: f.Spec.Namespace,
+		renderHelmChart := RenderHelmChartFunction{
+			Repo:      f.Repo,
+			Chart:     f.Chart,
+			Version:   f.Version,
+			Values:    f.Values,
+			Namespace: f.Namespace,
 		}
 		items, err := renderHelmChart.Filter(items)
 		if err != nil {
@@ -79,48 +75,48 @@ func (f *function) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 
 		// run pre-configured functions on rendered helm chart resources
 
-		removeBlankNamespace := functions.RemoveBlankNamespaceFunction{}
+		removeBlankNamespace := RemoveBlankNamespaceFunction{}
 		items, err = removeBlankNamespace.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-namespace function")
 		}
 
-		setManagedBy := functions.SetManagedByFunction{}
+		setManagedBy := SetManagedByFunction{}
 		items, err = setManagedBy.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run managed-by function")
 		}
 
-		setKonvertAnnotations := functions.SetKonvertAnnotationsFunction{
-			Repo:  f.Spec.Repo,
-			Chart: f.Spec.Chart,
+		setKonvertAnnotations := SetKonvertAnnotationsFunction{
+			Repo:  f.Repo,
+			Chart: f.Chart,
 		}
 		items, err = setKonvertAnnotations.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run konvert-annotations function")
 		}
 
-		fixNullNodePorts := functions.FixNullNodePortsFunction{}
+		fixNullNodePorts := FixNullNodePortsFunction{}
 		items, err = fixNullNodePorts.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run fix-null-node-ports function")
 		}
 
-		removeBlankAffinities := functions.RemoveBlankAffinitiesFunction{}
+		removeBlankAffinities := RemoveBlankAffinitiesFunction{}
 		items, err = removeBlankAffinities.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-affinities function")
 		}
 
-		removeBlankPodAffinityTermNamespaces := functions.RemoveBlankPodAffinityTermNamespacesFunction{}
+		removeBlankPodAffinityTermNamespaces := RemoveBlankPodAffinityTermNamespacesFunction{}
 		items, err = removeBlankPodAffinityTermNamespaces.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-pod-affinity-term-namespaces function")
 		}
 
-		setPathAnnotation := functions.SetPathAnnotationFunction{
-			Path:    f.Spec.Path,
-			Pattern: f.Spec.Pattern,
+		setPathAnnotation := SetPathAnnotationFunction{
+			Path:    f.Path,
+			Pattern: f.Pattern,
 		}
 		items, err = setPathAnnotation.Filter(items)
 		if err != nil {
@@ -138,10 +134,10 @@ func (f *function) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	// append newly rendered chart nodes
 	nodes = append(nodes, items...)
 
-	if f.Spec.Kustomize {
-		kustomizer := functions.KustomizerFunction{
-			Path:                    f.Spec.Path,
-			Namespace:               f.Spec.Namespace,
+	if f.Kustomize {
+		kustomizer := KustomizerFunction{
+			Path:                    f.Path,
+			Namespace:               f.Namespace,
 			ResourceAnnotationName:  annotationKonvertChart,
 			ResourceAnnotationValue: annotationKonvertChartValue,
 		}

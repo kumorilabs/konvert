@@ -1,4 +1,4 @@
-apiVersion: runtime.kumorilabs.io/v1alpha1
+apiVersion: konvert.kumorilabs.io/v1alpha1
 kind: Konvert
 metadata:
   name: mysql
