@@ -1,0 +1,19 @@
+# Source: cluster-autoscaler/templates/pdb.yaml
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/instance: "cluster-autoscaler"
+    app.kubernetes.io/name: "aws-cluster-autoscaler"
+    app.kubernetes.io/managed-by: "konvert"
+    helm.sh/chart: "cluster-autoscaler-9.11.0"
+  name: cluster-autoscaler-aws-cluster-autoscaler
+  annotations:
+    konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://kubernetes.github.io/autoscaler,cluster-autoscaler'
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: "cluster-autoscaler"
+      app.kubernetes.io/name: "aws-cluster-autoscaler"
+  maxUnavailable: 1

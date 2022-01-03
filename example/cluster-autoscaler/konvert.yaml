@@ -1,0 +1,10 @@
+apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: cluster-autoscaler
+spec:
+  chart: cluster-autoscaler
+  kustomize: true
+  repo: https://kubernetes.github.io/autoscaler
+  version: 9.11.0
+  namespace: cas
