@@ -61,6 +61,13 @@ spec:
             secretKeyRef:
               name: mysql
               key: mysql-root-password
+        - name: MYSQL_USER
+          value: "admin"
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql
+              key: mysql-password
         - name: MYSQL_DATABASE
           value: "my_database"
         ports:
