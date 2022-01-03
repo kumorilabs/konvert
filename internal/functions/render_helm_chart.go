@@ -3,6 +3,7 @@ package functions
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -17,7 +18,6 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -28,28 +28,7 @@ const (
 type RenderHelmChartProcessor struct{}
 
 func (p *RenderHelmChartProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnRenderHelmChartName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *RenderHelmChartProcessor) run(resourceList *framework.ResourceList) error {
-	var fn RenderHelmChartFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&RenderHelmChartFunction{}, resourceList)
 }
 
 type RenderHelmChartFunction struct {
@@ -61,26 +40,25 @@ type RenderHelmChartFunction struct {
 	Namespace          string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 }
 
-func (f *RenderHelmChartFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-		f.Namespace = rn.GetDataMap()["namespace"]
-	case validGVK(rn, fnConfigAPIVersion, fnRenderHelmChartKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnRenderHelmChartKind)
-	}
-
-	return nil
+func (f *RenderHelmChartFunction) Name() string {
+	return fnRenderHelmChartName
 }
 
-func (f *RenderHelmChartFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *RenderHelmChartFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnRenderHelmChartKind)
+}
+
+func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	if f.Repo == "" {
+		return items, fmt.Errorf("repo cannot be empty")
+	}
+	if f.Chart == "" {
+		return items, fmt.Errorf("chart cannot be empty")
+	}
+	if f.Version == "" {
+		return items, fmt.Errorf("version cannot be empty")
+	}
+
 	configPath := filepath.Join(os.Getenv("HOME"), ".config", "konvert", "helmlib")
 	cachePath := filepath.Join(os.Getenv("HOME"), ".cache", "konvert", "helmlib")
 
@@ -114,8 +92,7 @@ func (f *RenderHelmChartFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, err
 	}
 	defer func() {
 		if err := os.RemoveAll(tmpDir); err != nil {
-			// TODO: log?
-			fmt.Printf("unable to remove temporary directory %s: %s", tmpDir, err)
+			log.Printf("unable to remove temporary directory %s: %s", tmpDir, err)
 		}
 	}()
 
@@ -165,8 +142,7 @@ func (f *RenderHelmChartFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, err
 	// this chart)
 	var nonChartNodes []*kyaml.RNode
 	for _, item := range items {
-		// TODO: don't hardcode annotation here
-		if val, ok := item.GetAnnotations()["konvert.kumorilabs.io/chart"]; ok {
+		if val, ok := item.GetAnnotations()[annotationKonvertChart]; ok {
 			if val == fmt.Sprintf("%s,%s", f.Repo, f.Chart) {
 				continue
 			}

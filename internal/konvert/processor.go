@@ -19,7 +19,7 @@ func (p *Processor) process(resourceList *framework.ResourceList) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to configure konvert")
 	}
-	resourceList.Items, err = konvert.Run(resourceList.Items)
+	resourceList.Items, err = konvert.Filter(resourceList.Items)
 	if err != nil {
 		return errors.Wrap(err, "unable to run konvert")
 	}

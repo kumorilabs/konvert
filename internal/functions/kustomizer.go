@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -39,28 +40,7 @@ func (f kustomizationFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error
 type KustomizerProcessor struct{}
 
 func (p *KustomizerProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnKustomizerName, err),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *KustomizerProcessor) run(resourceList *framework.ResourceList) error {
-	var fn KustomizerFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&KustomizerFunction{}, resourceList)
 }
 
 type KustomizerFunction struct {
@@ -71,29 +51,22 @@ type KustomizerFunction struct {
 	ResourceAnnotationValue string `json:"resource_annotation_value,omitempty" yaml:"resource_annotation_value,omitempty"`
 }
 
-func (f *KustomizerFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-		data := rn.GetDataMap()
-		f.Path = data["path"]
-		f.Namespace = data["namespace"]
-	case validGVK(rn, fnConfigAPIVersion, fnKustomizerKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := kyaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnKustomizerKind)
-	}
-
-	return nil
+func (f *KustomizerFunction) Name() string {
+	return fnKustomizerName
 }
 
-func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	// TODO: namespace
+func (f *KustomizerFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnKustomizerKind)
+}
+
+func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	if f.ResourceAnnotationName == "" {
+		return items, fmt.Errorf("resource annotation name cannot be empty")
+	}
+	if f.ResourceAnnotationValue == "" {
+		return items, fmt.Errorf("resource annotation value cannot be empty")
+	}
+
 	resourceComment := fmt.Sprintf("%s: %s", f.ResourceAnnotationName, f.ResourceAnnotationValue)
 	knodes, err := kustomizationFilter{}.Filter(items)
 	if err != nil {
@@ -107,7 +80,6 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		items = append(items, kustnode)
 	}
 
-	// TODO: extract to kyaml Filter?
 	if f.Namespace != "" {
 		err := kustnode.PipeE(
 			kyaml.SetField("namespace", kyaml.NewScalarRNode(f.Namespace)),
@@ -124,7 +96,6 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		}
 	}
 
-	// TODO: extract to kyaml Filter?
 	resources, err := kustnode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
 	if err != nil {
 		return items, errors.Wrap(err, "unable to get kustomization resources node")
@@ -158,9 +129,16 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		}
 	}
 
+	// this assumes that items are already annotated with
+	// f.ResourceAnnotationName=f.ResourceAnnotationValue
+	// and Path
 	var kustresources []string
 	for _, node := range items {
-		path := node.GetAnnotations()["config.kubernetes.io/path"]
+		// make sure we never add the kustnode to the resource list
+		if node == kustnode {
+			continue
+		}
+		path := node.GetAnnotations()[kioutil.PathAnnotation]
 		resannotationvalue := node.GetAnnotations()[f.ResourceAnnotationName]
 		if path != "" && f.ResourceAnnotationValue == resannotationvalue {
 			kustresources = append(kustresources, path)
@@ -182,24 +160,19 @@ func (f *KustomizerFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 func (f KustomizerFunction) buildKustomizationNode() *kyaml.RNode {
-	// namespace should be optional
 	template := `
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 metadata:
   name: %s
   annotations:
-    config.kubernetes.io/path: %s
+    %s: %s
 `
-
-	name := "kustomization"
-	if f.Path != "" && f.Path != "." {
-		name = f.Path
-	}
 
 	kustomizeYaml := fmt.Sprintf(
 		template,
-		name,
+		"kustomization",
+		kioutil.PathAnnotation,
 		filepath.Join(f.Path, "kustomization.yaml"),
 	)
 

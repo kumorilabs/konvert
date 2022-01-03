@@ -1,12 +1,8 @@
 package functions
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -17,28 +13,7 @@ const (
 type RemoveByAnnotationsProcessor struct{}
 
 func (p *RemoveByAnnotationsProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnRemoveByAnnotationsName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *RemoveByAnnotationsProcessor) run(resourceList *framework.ResourceList) error {
-	var fn RemoveByAnnotationsFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&RemoveByAnnotationsFunction{}, resourceList)
 }
 
 type RemoveByAnnotationsFunction struct {
@@ -46,26 +21,16 @@ type RemoveByAnnotationsFunction struct {
 	Annotations        map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 }
 
-func (f *RemoveByAnnotationsFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-		f.Annotations = rn.GetDataMap()
-	case validGVK(rn, fnConfigAPIVersion, fnRemoveByAnnotationsKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnRemoveByAnnotationsKind)
-	}
-
-	return nil
+func (f *RemoveByAnnotationsFunction) Name() string {
+	return fnRemoveByAnnotationsName
 }
 
-func (f *RemoveByAnnotationsFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *RemoveByAnnotationsFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnRemoveByAnnotationsKind)
+}
+
+// any resources that have a matching annotation (k=v) will be removed
+func (f *RemoveByAnnotationsFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	if len(f.Annotations) == 0 {
 		return items, nil
 	}
@@ -77,7 +42,7 @@ func (f *RemoveByAnnotationsFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode,
 			if v, ok := item.GetAnnotations()[key]; ok {
 				matched = v == val
 			}
-			if !matched {
+			if matched {
 				break
 			}
 		}

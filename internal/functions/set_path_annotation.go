@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -20,62 +20,26 @@ const (
 type SetPathAnnotationProcessor struct{}
 
 func (p *SetPathAnnotationProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnSetPathAnnotationName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
+	return runFn(&SetPathAnnotationFunction{}, resourceList)
 }
 
-func (p *SetPathAnnotationProcessor) run(resourceList *framework.ResourceList) error {
-	var fn SetPathAnnotationFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
-}
-
+// not sure why we have a path and a pattern when you can include a path in the
+// pattern :shrug:
 type SetPathAnnotationFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
 	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
 	Pattern            string `json:"pattern,omitempty" yaml:"pattern,omitempty"`
 }
 
-func (f *SetPathAnnotationFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-	case validGVK(rn, fnConfigAPIVersion, fnSetPathAnnotationKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnSetPathAnnotationKind)
-	}
-
-	return nil
+func (f *SetPathAnnotationFunction) Name() string {
+	return fnSetPathAnnotationName
 }
 
-func (f *SetPathAnnotationFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	if f.Path == "" {
-		f.Path = "."
-	}
-	if f.Pattern == "" {
-		f.Pattern = "%s-%s.yaml"
-	}
+func (f *SetPathAnnotationFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnSetPathAnnotationKind)
+}
 
+func (f *SetPathAnnotationFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	items, err := kio.FilterAll(
 		PathAnnotation(f.Path, f.Pattern),
 	).Filter(items)
@@ -96,6 +60,13 @@ func PathAnnotation(path, pattern string) PathAnnotationSetter {
 }
 
 func (f PathAnnotationSetter) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
+	if f.path == "" {
+		f.path = "."
+	}
+	if f.pattern == "" {
+		f.pattern = "%s-%s.yaml"
+	}
+
 	meta, err := node.GetMeta()
 	if err != nil {
 		return node, errors.Wrap(err, "unable to get meta from rnode")
@@ -112,7 +83,7 @@ func (f PathAnnotationSetter) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
 	// base/%s-%s.yaml
 	err = node.PipeE(
 		kyaml.SetAnnotation(
-			"config.kubernetes.io/path",
+			kioutil.PathAnnotation,
 			filepath.Join(f.path, fmt.Sprintf(f.pattern, kind, name)),
 		),
 	)

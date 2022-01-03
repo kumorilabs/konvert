@@ -1,12 +1,10 @@
 package functions
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -17,107 +15,93 @@ const (
 type RemoveBlankPodAffinityTermNamespacesProcessor struct{}
 
 func (p *RemoveBlankPodAffinityTermNamespacesProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnRemoveBlankPodAffinityTermNamespacesName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *RemoveBlankPodAffinityTermNamespacesProcessor) run(resourceList *framework.ResourceList) error {
-	var fn RemoveBlankPodAffinityTermNamespacesFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&RemoveBlankPodAffinityTermNamespacesFunction{}, resourceList)
 }
 
 type RemoveBlankPodAffinityTermNamespacesFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
 }
 
-func (f *RemoveBlankPodAffinityTermNamespacesFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-	case validGVK(rn, fnConfigAPIVersion, fnRemoveBlankPodAffinityTermNamespacesKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnRemoveBlankAffinitiesKind)
-	}
-
-	return nil
+func (f *RemoveBlankPodAffinityTermNamespacesFunction) Name() string {
+	return fnRemoveBlankPodAffinityTermNamespacesName
 }
 
-func (f *RemoveBlankPodAffinityTermNamespacesFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	// TODO: refactor to a kyaml.Filter and then just FilterAll
-	for _, item := range items {
-		affinities := []string{"podAffinity", "podAntiAffinity"}
-		for _, afftype := range affinities {
-			affinity, err := item.Pipe(
-				kyaml.Lookup("spec", "template", "spec", "affinity", afftype),
+func (f *RemoveBlankPodAffinityTermNamespacesFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnRemoveBlankPodAffinityTermNamespacesKind)
+}
+
+func (f *RemoveBlankPodAffinityTermNamespacesFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	return kio.FilterAll(&RemoveBlankPodAffinityTermNamespaces{}).Filter(items)
+}
+
+type RemoveBlankPodAffinityTermNamespaces struct{}
+
+func (f *RemoveBlankPodAffinityTermNamespaces) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
+	podSpec, err := node.Pipe(
+		kyaml.LookupFirstMatch(podSpecPaths),
+	)
+	if err != nil {
+		return node, errors.Wrap(err, "unable to lookup pod spec")
+	}
+
+	affinity, err := kyaml.Get("affinity").Filter(podSpec)
+	if err != nil {
+		return node, errors.Wrap(err, "unable to get affinity field")
+	}
+
+	if affinity == nil {
+		return node, nil
+	}
+
+	affinities := []string{"podAffinity", "podAntiAffinity"}
+	for _, afftype := range affinities {
+		affinityType, err := kyaml.Get(afftype).Filter(affinity)
+		if err != nil {
+			return node, errors.Wrap(err, "unable to get affinity type")
+		}
+
+		if affinityType != nil {
+			termNodes, err := affinityType.Pipe(
+				kyaml.Lookup("preferredDuringSchedulingIgnoredDuringExecution"),
 			)
 			if err != nil {
-				return items, errors.Wrap(err, "unable to lookup affinity")
+				return node, errors.Wrap(err, "unable to lookup pod affinity term (preferred)")
+			}
+			terms, err := termNodes.Elements()
+			if err != nil {
+				return node, errors.Wrap(err, "unable to get term node elements")
+			}
+			for _, weightedTerm := range terms {
+				term, err := weightedTerm.Pipe(kyaml.Lookup("podAffinityTerm"))
+				if err != nil {
+					return node, errors.Wrap(err, "unable to lookup podAffinityTerm on weighted pod affinity term")
+				}
+				if term == nil {
+					continue
+				}
+				if err := removeBlankNamespacesFromPodAffnityTerm(term); err != nil {
+					return node, err
+				}
 			}
 
-			if affinity != nil {
-				termNodes, err := affinity.Pipe(
-					kyaml.Lookup("preferredDuringSchedulingIgnoredDuringExecution"),
-				)
-				if err != nil {
-					return items, errors.Wrap(err, "unable to lookup pod affinity term (preferred)")
-				}
-				terms, err := termNodes.Elements()
-				if err != nil {
-					return items, errors.Wrap(err, "unable to get term node elements")
-				}
-				for _, weightedTerm := range terms {
-					term, err := weightedTerm.Pipe(kyaml.Lookup("podAffinityTerm"))
-					if err != nil {
-						return items, errors.Wrap(err, "unable to lookup podAffinityTerm on weighted pod affinity term")
-					}
-					if term == nil {
-						continue
-					}
-					if err := removeBlankNamespacesFromPodAffnityTerm(term); err != nil {
-						return items, err
-					}
-				}
-
-				termNodes, err = affinity.Pipe(
-					kyaml.Lookup("requiredDuringSchedulingIgnoredDuringExecution"),
-				)
-				if err != nil {
-					return items, errors.Wrap(err, "unable to lookup pod affinity term (required)")
-				}
-				terms, err = termNodes.Elements()
-				if err != nil {
-					return items, errors.Wrap(err, "unable to get term node elements")
-				}
-				for _, term := range terms {
-					if err := removeBlankNamespacesFromPodAffnityTerm(term); err != nil {
-						return items, err
-					}
+			termNodes, err = affinityType.Pipe(
+				kyaml.Lookup("requiredDuringSchedulingIgnoredDuringExecution"),
+			)
+			if err != nil {
+				return node, errors.Wrap(err, "unable to lookup pod affinity term (required)")
+			}
+			terms, err = termNodes.Elements()
+			if err != nil {
+				return node, errors.Wrap(err, "unable to get term node elements")
+			}
+			for _, term := range terms {
+				if err := removeBlankNamespacesFromPodAffnityTerm(term); err != nil {
+					return node, err
 				}
 			}
 		}
 	}
-	return items, nil
+	return node, nil
 }
 
 func removeBlankNamespacesFromPodAffnityTerm(term *kyaml.RNode) error {

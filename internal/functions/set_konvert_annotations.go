@@ -7,7 +7,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -15,35 +14,13 @@ const (
 	fnSetKonvertAnnotationsKind  = "SetKonvertAnnotations"
 	annotationKonvertGeneratedBy = fnConfigGroup + "/generated-by"
 	annotationKonvertChart       = fnConfigGroup + "/chart"
-	AnnotationKonvertChart       = annotationKonvertChart
 	defaultGeneratedBy           = "konvert"
 )
 
 type SetKonvertAnnotationsProcessor struct{}
 
 func (p *SetKonvertAnnotationsProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnSetKonvertAnnotationsName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *SetKonvertAnnotationsProcessor) run(resourceList *framework.ResourceList) error {
-	var fn SetKonvertAnnotationsFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&SetManagedByFunction{}, resourceList)
 }
 
 type SetKonvertAnnotationsFunction struct {
@@ -52,25 +29,15 @@ type SetKonvertAnnotationsFunction struct {
 	Repo               string `json:"repo,omitempty" yaml:"repo,omitempty"`
 }
 
-func (f *SetKonvertAnnotationsFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-	case validGVK(rn, fnConfigAPIVersion, fnSetKonvertAnnotationsKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnSetKonvertAnnotationsKind)
-	}
-
-	return nil
+func (f *SetKonvertAnnotationsFunction) Name() string {
+	return fnSetKonvertAnnotationsName
 }
 
-func (f *SetKonvertAnnotationsFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *SetKonvertAnnotationsFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnSetKonvertAnnotationsKind)
+}
+
+func (f *SetKonvertAnnotationsFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	if f.Repo == "" {
 		return items, fmt.Errorf("repo cannot be empty")
 	}

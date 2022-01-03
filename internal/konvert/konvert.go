@@ -43,7 +43,7 @@ func (f *function) Config(rn *kyaml.RNode) error {
 	return nil
 }
 
-func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *function) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	// for each chart instance (repo, version, release?):
 	//   remove previously rendered chart nodes
 	//   render chart nodes
@@ -58,7 +58,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		},
 	}
 
-	nodes, err := removeByAnnotations.Run(nodes)
+	nodes, err := removeByAnnotations.Filter(nodes)
 	if err != nil {
 		return nodes, errors.Wrap(err, "unable to run remove-by-annotations function")
 	}
@@ -72,7 +72,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Values:    f.Spec.Values,
 			Namespace: f.Spec.Namespace,
 		}
-		items, err := renderHelmChart.Run(items)
+		items, err := renderHelmChart.Filter(items)
 		if err != nil {
 			return items, err
 		}
@@ -80,13 +80,13 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		// run pre-configured functions on rendered helm chart resources
 
 		removeBlankNamespace := functions.RemoveBlankNamespaceFunction{}
-		items, err = removeBlankNamespace.Run(items)
+		items, err = removeBlankNamespace.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-namespace function")
 		}
 
 		setManagedBy := functions.SetManagedByFunction{}
-		items, err = setManagedBy.Run(items)
+		items, err = setManagedBy.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run managed-by function")
 		}
@@ -95,25 +95,25 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Repo:  f.Spec.Repo,
 			Chart: f.Spec.Chart,
 		}
-		items, err = setKonvertAnnotations.Run(items)
+		items, err = setKonvertAnnotations.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run konvert-annotations function")
 		}
 
 		fixNullNodePorts := functions.FixNullNodePortsFunction{}
-		items, err = fixNullNodePorts.Run(items)
+		items, err = fixNullNodePorts.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run fix-null-node-ports function")
 		}
 
 		removeBlankAffinities := functions.RemoveBlankAffinitiesFunction{}
-		items, err = removeBlankAffinities.Run(items)
+		items, err = removeBlankAffinities.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-affinities function")
 		}
 
 		removeBlankPodAffinityTermNamespaces := functions.RemoveBlankPodAffinityTermNamespacesFunction{}
-		items, err = removeBlankPodAffinityTermNamespaces.Run(items)
+		items, err = removeBlankPodAffinityTermNamespaces.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run remove-blank-pod-affinity-term-namespaces function")
 		}
@@ -122,7 +122,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Path:    f.Spec.Path,
 			Pattern: f.Spec.Pattern,
 		}
-		items, err = setPathAnnotation.Run(items)
+		items, err = setPathAnnotation.Filter(items)
 		if err != nil {
 			return items, errors.Wrap(err, "unable to run path-annotation function")
 		}
@@ -145,7 +145,7 @@ func (f *function) Run(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			ResourceAnnotationName:  annotationKonvertChart,
 			ResourceAnnotationValue: annotationKonvertChartValue,
 		}
-		nodes, err = kustomizer.Run(nodes)
+		nodes, err = kustomizer.Filter(nodes)
 		if err != nil {
 			return nodes, errors.Wrap(err, "unable to run kustomizer function")
 		}

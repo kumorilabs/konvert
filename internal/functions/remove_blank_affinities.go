@@ -1,12 +1,10 @@
 package functions
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -17,74 +15,58 @@ const (
 type RemoveBlankAffinitiesProcessor struct{}
 
 func (p *RemoveBlankAffinitiesProcessor) Process(resourceList *framework.ResourceList) error {
-	err := p.run(resourceList)
-	if err != nil {
-		result := &framework.Result{
-			Message:  fmt.Sprintf("error running %s: %v", fnRemoveBlankAffinitiesName, err.Error()),
-			Severity: framework.Error,
-		}
-		resourceList.Results = append(resourceList.Results, result)
-	}
-	return err
-}
-
-func (p *RemoveBlankAffinitiesProcessor) run(resourceList *framework.ResourceList) error {
-	var fn RemoveBlankAffinitiesFunction
-	err := fn.Config(resourceList.FunctionConfig)
-	if err != nil {
-		return errors.Wrap(err, "failed to configure function")
-	}
-	resourceList.Items, err = fn.Run(resourceList.Items)
-	if err != nil {
-		return errors.Wrap(err, "failed to run function")
-	}
-	return nil
+	return runFn(&RemoveBlankAffinitiesFunction{}, resourceList)
 }
 
 type RemoveBlankAffinitiesFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
 }
 
-func (f *RemoveBlankAffinitiesFunction) Config(rn *kyaml.RNode) error {
-	switch {
-	case validGVK(rn, "v1", "ConfigMap"):
-	case validGVK(rn, fnConfigAPIVersion, fnRemoveBlankAffinitiesKind):
-		yamlstr, err := rn.String()
-		if err != nil {
-			return errors.Wrap(err, "unable to get yaml from rnode")
-		}
-		if err := yaml.Unmarshal([]byte(yamlstr), f); err != nil {
-			return errors.Wrap(err, "unable to unmarshal function config")
-		}
-	default:
-		return fmt.Errorf("`functionConfig` must be a `ConfigMap` or `%s`", fnRemoveBlankAffinitiesKind)
-	}
-
-	return nil
+func (f *RemoveBlankAffinitiesFunction) Name() string {
+	return fnRemoveBlankAffinitiesName
 }
 
-func (f *RemoveBlankAffinitiesFunction) Run(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	// TODO: refactor to a kyaml.Filter and then just FilterAll
-	for _, item := range items {
-		affinity, err := item.Pipe(
-			kyaml.Lookup("spec", "template", "spec", "affinity"),
-		)
-		if err != nil {
-			return items, errors.Wrap(err, "unable to lookup affinity")
-		}
+func (f *RemoveBlankAffinitiesFunction) Config(rn *kyaml.RNode) error {
+	return loadConfig(f, rn, fnRemoveBlankAffinitiesKind)
+}
 
-		if affinity != nil {
-			affinities := []string{"podAffinity", "nodeAffinity", "podAntiAffinity"}
-			for _, affinityField := range affinities {
-				field := affinity.Field(affinityField)
-				if field.IsNilOrEmpty() {
-					err = affinity.PipeE(kyaml.Clear(affinityField))
-					if err != nil {
-						return items, errors.Wrapf(err, "unable to clear field %q", affinityField)
-					}
+func (f *RemoveBlankAffinitiesFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	return kio.FilterAll(&RemoveBlankAffinity{}).Filter(items)
+}
+
+type RemoveBlankAffinity struct{}
+
+func (f *RemoveBlankAffinity) Filter(node *kyaml.RNode) (*kyaml.RNode, error) {
+	podSpec, err := node.Pipe(
+		kyaml.LookupFirstMatch(podSpecPaths),
+	)
+	if err != nil {
+		return node, errors.Wrap(err, "unable to lookup pod spec")
+	}
+
+	affinity, err := kyaml.Get("affinity").Filter(podSpec)
+	if err != nil {
+		return node, errors.Wrap(err, "unable to get affinity field")
+	}
+
+	if affinity != nil {
+		affinities := []string{"podAffinity", "nodeAffinity", "podAntiAffinity"}
+		for _, affinityField := range affinities {
+			field := affinity.Field(affinityField)
+			if field.IsNilOrEmpty() {
+				err = affinity.PipeE(kyaml.Clear(affinityField))
+				if err != nil {
+					return node, errors.Wrapf(err, "unable to clear field %q", affinityField)
 				}
 			}
 		}
+		if affinity.IsNilOrEmpty() {
+			err = podSpec.PipeE(kyaml.Clear("affinity"))
+			if err != nil {
+				return node, errors.Wrapf(err, "unable to clear field %q", "affinity")
+			}
+		}
 	}
-	return items, nil
+
+	return node, nil
 }
