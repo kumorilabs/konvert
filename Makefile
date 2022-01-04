@@ -32,7 +32,7 @@ push: docker
 	docker push kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY}
 
 example: build
-	kpt fn eval example/${EXAMPLE} --exec ./fn.sh --results-dir results --fn-config example/${EXAMPLE}/konvert.yaml
+	kpt fn eval example/${EXAMPLE} --exec "./konvert fn" --results-dir results --fn-config example/${EXAMPLE}/konvert.yaml
 	cat results/results.yaml
 
 deploy-example: example
