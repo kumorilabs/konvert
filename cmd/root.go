@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kumorilabs/konvert/pkg/konverter"
+	"github.com/kumorilabs/konvert/internal/konvert"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -17,16 +17,14 @@ var (
 )
 
 type root struct {
-	chart   string
-	version string
-	out     string
+	filepath string
 }
 
 func newRootCommand(args []string) *cobra.Command {
 	root := &root{}
 	rootCmd := &cobra.Command{
 		Use:   "konvert",
-		Short: "konvert generates kustomize bases",
+		Short: "konvert generates kustomize bases or kubernetes manifests",
 		Long:  `konvert can convert helm charts to kustomize bases or plain kubernetes manifests`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := root.run(); err != nil {
@@ -42,17 +40,13 @@ func newRootCommand(args []string) *cobra.Command {
 	rootCmd.SetVersionTemplate(`{{.Version}}`)
 	rootCmd.AddCommand(newFnCommand(args))
 
+	rootCmd.Flags().StringVarP(&root.filepath, "file", "f", "konvert.yaml", "the path to the konvert configuration.")
+
 	return rootCmd
 }
 
 func (r *root) run() error {
-	// load config
-	config, err := konverter.LoadLocalConfig()
-	if err != nil {
-		return err
-	}
-	converter := konverter.New(config)
-	return converter.Run()
+	return konvert.Konvert(r.filepath)
 }
 
 // Execute runs the root command

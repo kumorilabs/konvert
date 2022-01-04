@@ -240,7 +240,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation,
+							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},
 				},
@@ -261,7 +261,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation,
+							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},
 				},

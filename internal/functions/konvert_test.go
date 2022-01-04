@@ -261,7 +261,7 @@ func TestKonvertFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation,
+							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},
 				},
@@ -282,7 +282,7 @@ func TestKonvertFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation,
+							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},
 				},

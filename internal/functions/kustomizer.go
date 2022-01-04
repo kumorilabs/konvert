@@ -154,6 +154,9 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 				LineComment: resourceComment,
 			},
 		))
+		if err != nil {
+			return items, errors.Wrapf(err, "unable to create resource node for %q", res)
+		}
 	}
 
 	return items, nil
