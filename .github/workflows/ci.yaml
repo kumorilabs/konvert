@@ -29,7 +29,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v2
       with:
-        args: -v
+        args: -v --timeout 2m
     - name: Run Tests
       run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
     - name: Run codecov
