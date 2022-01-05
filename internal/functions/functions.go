@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
@@ -45,6 +46,7 @@ func validGVK(rn *kyaml.RNode, apiVersion, kind string) bool {
 }
 
 func runFn(fn konvertFunction, resourceList *framework.ResourceList) error {
+	log.Infof("running %s function", fn.Name())
 	err := fn.Config(resourceList.FunctionConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to configure function")

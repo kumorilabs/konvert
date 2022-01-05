@@ -46,6 +46,7 @@ func newRootCommand(args []string) *cobra.Command {
 }
 
 func (r *root) run() error {
+	log.Info("running in standalone mode")
 	return konvert.Konvert(r.filepath)
 }
 

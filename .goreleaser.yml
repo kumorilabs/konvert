@@ -1,0 +1,74 @@
+project_name: konvert
+before:
+  hooks:
+    - go mod download
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - windows
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  - arm64
+  # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+  ldflags:
+  - -s -w -X github.com/kumorilabs/konvert/cmd.Version={{.Version}} -X github.com/kumorilabs/konvert/cmd.GitCommit={{.ShortCommit}}
+universal_binaries:
+- replace: true
+archives:
+- format: binary
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "main"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - Merge pull request
+    - Merge branch
+dockers:
+- image_templates:
+  - "kumorilabs/{{.ProjectName}}:{{ .Tag }}-amd64"
+  skip_push: false
+  dockerfile: Dockerfile
+  use: buildx
+  build_flag_templates:
+  - --platform=linux/amd64
+  - --label=org.opencontainers.image.title={{ .ProjectName }}
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/kumorilabs/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/kumorilabs/{{ .ProjectName }}
+  - --label=org.opencontainers.image.version={{ .Version }}
+  - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=Apache-2.0
+- image_templates:
+  - "kumorilabs/{{.ProjectName}}:{{ .Tag }}-arm64v8"
+  goarch: arm64
+  skip_push: false
+  dockerfile: Dockerfile
+  use: buildx
+  build_flag_templates:
+  - --platform=linux/arm64/v8
+  - --label=org.opencontainers.image.title={{ .ProjectName }}
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/kumorilabs/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/kumorilabs/{{ .ProjectName }}
+  - --label=org.opencontainers.image.version={{ .Version }}
+  - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=Apache-2.0
+docker_manifests:
+- name_template: "kumorilabs/{{ .ProjectName }}:{{ .Tag }}"
+  image_templates:
+  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+- name_template: "kumorilabs/{{ .ProjectName }}:latest"
+  image_templates:
+  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"

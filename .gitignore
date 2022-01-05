@@ -17,7 +17,8 @@
 # Test output
 output/
 /results/
+dist/
 
-
-# example/mysql/*
 !example/mysql/konvert.yaml
+!example/cluster-autoscaler/konvert.yaml
+
