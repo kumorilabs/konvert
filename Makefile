@@ -23,14 +23,6 @@ testv:
 install:
 	go install -ldflags "-w -X github.com/kumorilabs/konvert/cmd.Version=${GIT_BRANCH} -X github.com/kumorilabs/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
 
-docker: build
-	# TODO: fix Version
-	CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags "-w -X github.com/kumorilabs/konvert/cmd.Version=${GIT_BRANCH} -X github.com/kumorilabs/konvert/cmd.GitCommit=${GIT_SHA}${GIT_DIRTY}" .
-	docker build -t kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY} .
-
-push: docker
-	docker push kumorilabs/konvert:${GIT_SHA}${GIT_DIRTY}
-
 example: build
 	kpt fn eval example/${EXAMPLE} --exec "./konvert fn" --results-dir results --fn-config example/${EXAMPLE}/konvert.yaml
 	cat results/results.yaml
