@@ -34,7 +34,7 @@ changelog:
 dockers:
 # bin images
 - image_templates:
-  - "kumorilabs/{{.ProjectName}}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/{{.ProjectName}}:{{ .Tag }}-amd64"
   skip_push: false
   dockerfile: Dockerfile
   use: buildx
@@ -49,7 +49,7 @@ dockers:
   - --label=org.opencontainers.image.revision={{ .FullCommit }}
   - --label=org.opencontainers.image.licenses=Apache-2.0
 - image_templates:
-  - "kumorilabs/{{.ProjectName}}:{{ .Tag }}-arm64v8"
+  - "ghcr.io/kumorilabs/{{.ProjectName}}:{{ .Tag }}-arm64v8"
   goarch: arm64
   skip_push: false
   dockerfile: Dockerfile
@@ -66,7 +66,7 @@ dockers:
   - --label=org.opencontainers.image.licenses=Apache-2.0
 # fn images
 - image_templates:
-  - "kumorilabs/krm-fn-{{.ProjectName}}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/krm-fn-{{.ProjectName}}:{{ .Tag }}-amd64"
   skip_push: false
   dockerfile: Dockerfile.fn
   use: buildx
@@ -81,7 +81,7 @@ dockers:
   - --label=org.opencontainers.image.revision={{ .FullCommit }}
   - --label=org.opencontainers.image.licenses=Apache-2.0
 - image_templates:
-  - "kumorilabs/krm-fn-{{.ProjectName}}:{{ .Tag }}-arm64v8"
+  - "ghcr.io/kumorilabs/krm-fn-{{.ProjectName}}:{{ .Tag }}-arm64v8"
   goarch: arm64
   skip_push: false
   dockerfile: Dockerfile.fn
@@ -99,20 +99,20 @@ dockers:
 
 docker_manifests:
 # bin images
-- name_template: "kumorilabs/{{ .ProjectName }}:{{ .Tag }}"
+- name_template: "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}"
   image_templates:
-  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
-  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+  - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
 - name_template: "kumorilabs/{{ .ProjectName }}:latest"
   image_templates:
-  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
-  - "kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+  - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
 # fn images
-- name_template: "kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}"
+- name_template: "ghcr.io/kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}"
   image_templates:
-  - "kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-amd64"
-  - "kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-arm64v8"
-- name_template: "kumorilabs/{{ .ProjectName }}:latest"
+  - "ghcr.io/kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+- name_template: "ghcr.io/kumorilabs/{{ .ProjectName }}:latest"
   image_templates:
-  - "kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-amd64"
-  - "kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+  - "ghcr.io/kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "ghcr.io/kumorilabs/krm-fn-{{ .ProjectName }}:{{ .Tag }}-arm64v8"

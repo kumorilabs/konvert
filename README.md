@@ -68,7 +68,7 @@ konvert -f cert-manager
 Because `kpt` currently does not [allow network access](https://kpt.dev/book/04-using-functions/02-imperative-function-execution?id=privileged-execution) when executing functions declaratively, you must use `kpt fn eval` if you are rendering a chart from a remote repository.
 
 ``` shell
-kpt fn eval cert-manager --image kumorilabs/krm-fn-konvert:latest --network --fn-config cert-manager/konvert.yaml
+kpt fn eval cert-manager --image ghcr.io/kumorilabs/krm-fn-konvert:latest --network --fn-config cert-manager/konvert.yaml
 ```
 
 If you don't wish to use the container image, you can also execute the `konvert` function using the binary.
@@ -83,7 +83,7 @@ kpt fn eval cert-manager --exec "konvert fn" --fn-config cert-manager/konvert.ya
 Using docker:
 
 ``` shell
-docker run --rm -it -v "$(pwd)":/src kumorilabs/konvert:latest -f src/cert-manager
+docker run --rm -it -v "$(pwd)":/src ghcr.io/kumorilabs/konvert:latest -f src/cert-manager
 ```
 
 ### Kustomize Generator Plugin
@@ -95,7 +95,7 @@ annotations:
   config.kubernetes.io/function: |
     container:
       network: true
-      image: kumorilabs/krm-fn-konvert:latest
+      image: ghcr.io/kumorilabs/krm-fn-konvert:latest
 ```
 
 You also need a kustomization.yaml that specifies the generator configuration.
