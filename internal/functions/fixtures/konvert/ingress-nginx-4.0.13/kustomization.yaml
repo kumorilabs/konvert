@@ -5,4 +5,4 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: 'true'
 resources:
-- upstream
+- upstream # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx

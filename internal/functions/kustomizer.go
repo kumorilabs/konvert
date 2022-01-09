@@ -88,47 +88,17 @@ func (f *KustomizerFunction) kustomizationAtPath(path string, items []*kyaml.RNo
 	return kustnode, created, nil
 }
 
-func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	if f.ResourceAnnotationName == "" {
-		return items, fmt.Errorf("resource annotation name cannot be empty")
-	}
-	if f.ResourceAnnotationValue == "" {
-		return items, fmt.Errorf("resource annotation value cannot be empty")
-	}
-
+func (f *KustomizerFunction) kustomizeResources(kustnode *kyaml.RNode, resitems []string) error {
 	resourceComment := fmt.Sprintf("%s: %s", f.ResourceAnnotationName, f.ResourceAnnotationValue)
-
-	kustnode, created, err := f.kustomizationAtPath(f.Path, items)
-	if err != nil {
-		return items, err
-	}
-	if created {
-		items = append(items, kustnode)
-	}
-
-	if f.Namespace != "" {
-		err := kustnode.PipeE(
-			kyaml.SetField("namespace", kyaml.NewScalarRNode(f.Namespace)),
-		)
-		if err != nil {
-			return items, errors.Wrap(err, "unable to set kustomization namespace")
-		}
-	} else {
-		err := kustnode.PipeE(
-			kyaml.Clear("namespace"),
-		)
-		if err != nil {
-			return items, errors.Wrap(err, "unable to clear kustomization namespace")
-		}
-	}
+	sort.Strings(resitems)
 
 	resources, err := kustnode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
 	if err != nil {
-		return items, errors.Wrap(err, "unable to get kustomization resources node")
+		return errors.Wrap(err, "unable to get kustomization resources node")
 	}
 	reselems, err := resources.Elements()
 	if err != nil {
-		return items, errors.Wrap(err, "unable to read element from kustomization resources")
+		return errors.Wrap(err, "unable to read element from kustomization resources")
 	}
 	var preservedResources []*kyaml.Node
 	for _, e := range reselems {
@@ -138,12 +108,12 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 	}
 
 	if err := kustnode.PipeE(kyaml.Clear("resources")); err != nil {
-		return items, errors.Wrap(err, "unable to clear resources field")
+		return errors.Wrap(err, "unable to clear resources field")
 	}
 
 	resources, err = kustnode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
 	if err != nil {
-		return items, errors.Wrap(err, "unable to get kustomization resources node")
+		return errors.Wrap(err, "unable to get kustomization resources node")
 	}
 
 	for _, res := range preservedResources {
@@ -151,13 +121,71 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 			kyaml.Append(res),
 		)
 		if err != nil {
-			return items, errors.Wrap(err, "unable to append to kustomization resources")
+			return errors.Wrap(err, "unable to append to kustomization resources")
 		}
 	}
 
+	for _, res := range resitems {
+		err = resources.PipeE(kyaml.Append(
+			&kyaml.Node{
+				Kind:        kyaml.ScalarNode,
+				Value:       res,
+				LineComment: resourceComment,
+			},
+		))
+		if err != nil {
+			return errors.Wrapf(err, "unable to create resource node for %q", res)
+		}
+	}
+	return nil
+}
+
+func (f *KustomizerFunction) kustomizeNamespace(kustnode *kyaml.RNode, namespace string) error {
+	if f.Namespace != "" {
+		err := kustnode.PipeE(
+			kyaml.SetField("namespace", kyaml.NewScalarRNode(f.Namespace)),
+		)
+		if err != nil {
+			return errors.Wrap(err, "unable to set kustomization namespace")
+		}
+	} else {
+		err := kustnode.PipeE(
+			kyaml.Clear("namespace"),
+		)
+		if err != nil {
+			return errors.Wrap(err, "unable to clear kustomization namespace")
+		}
+	}
+	return nil
+}
+
+func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	if f.ResourceAnnotationName == "" {
+		return items, fmt.Errorf("resource annotation name cannot be empty")
+	}
+	if f.ResourceAnnotationValue == "" {
+		return items, fmt.Errorf("resource annotation value cannot be empty")
+	}
+
+	// get or create kustomization.yaml at Path
+	kustnode, created, err := f.kustomizationAtPath(f.Path, items)
+	if err != nil {
+		return items, err
+	}
+	if created {
+		items = append(items, kustnode)
+	}
+
+	// set or clear namespace
+	if err := f.kustomizeNamespace(kustnode, f.Namespace); err != nil {
+		return items, err
+	}
+
+	// build list of kustomization resources
 	// this assumes that items are already annotated with
 	// f.ResourceAnnotationName=f.ResourceAnnotationValue
 	// and Path
+	// (see SetKonvertAnnotationsFunction, SetPathAnnotationFunction)
 	var kustresources []string
 	for _, node := range items {
 		// make sure we never add the kustnode to the resource list
@@ -175,18 +203,9 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 		}
 	}
 
-	sort.Strings(kustresources)
-	for _, res := range kustresources {
-		err = resources.PipeE(kyaml.Append(
-			&kyaml.Node{
-				Kind:        kyaml.ScalarNode,
-				Value:       res,
-				LineComment: resourceComment,
-			},
-		))
-		if err != nil {
-			return items, errors.Wrapf(err, "unable to create resource node for %q", res)
-		}
+	// set kustomization resourrces
+	if err := f.kustomizeResources(kustnode, kustresources); err != nil {
+		return items, err
 	}
 
 	// if we are kustomizing resources in a subdirectory (upstream, for
@@ -203,20 +222,10 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 		if created {
 			items = append(items, baseKustNode)
 		}
-		resources, err = baseKustNode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
-		if err != nil {
-			return items, errors.Wrap(err, "unable to get kustomization resources node")
+		if err := f.kustomizeResources(baseKustNode, []string{f.Path}); err != nil {
+			return items, err
 		}
-		err = resources.PipeE(kyaml.Append(
-			&kyaml.Node{
-				Kind:  kyaml.ScalarNode,
-				Value: f.Path,
-			},
-		))
 	}
-
-	// TODO: add tests around existing kustomization.yamls in the directory tree
-	// we are konverting
 
 	return items, nil
 }

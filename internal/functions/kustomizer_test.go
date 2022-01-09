@@ -450,7 +450,172 @@ metadata:
     config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
 resources:
-- upstream/base
+- upstream/base # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+`,
+		},
+		{
+			name:            "with-kustomization-path-and-existing-base",
+			path:            "upstream/base",
+			annotationName:  annotationKonvertChart,
+			annotationValue: "https://charts.bitnami.com/bitnami,mysql",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'service-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+spec:
+  type: ClusterIP
+  ports:
+  - name: mysql
+    port: 3306
+    protocol: TCP
+    targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'configmap-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+data:
+  my.cnf: |2-
+
+    [mysqld]
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+`,
+			kustomization: `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+- upstream/base # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: upstream/base/kustomization.yaml
+resources:
+- configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+- service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+`,
+		},
+		{
+			name:            "with-kustomization-path-and-existing-kustomizations-base-and-chart",
+			path:            "upstream/base",
+			annotationName:  annotationKonvertChart,
+			annotationValue: "https://charts.bitnami.com/bitnami,mysql",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'service-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+spec:
+  type: ClusterIP
+  ports:
+  - name: mysql
+    port: 3306
+    protocol: TCP
+    targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'configmap-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+data:
+  my.cnf: |2-
+
+    [mysqld]
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: upstream/base/kustomization.yaml
+    config.kubernetes.io/path: 'upstream/base/kustomization.yaml'
+resources:
+- another-service.yaml
+- another-secret.yaml
+`,
+			kustomization: `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+- upstream/base # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: upstream/base/kustomization.yaml
+    config.kubernetes.io/path: 'upstream/base/kustomization.yaml'
+resources:
+- another-service.yaml
+- another-secret.yaml
+- configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+- service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
 `,
 		},
 		{
