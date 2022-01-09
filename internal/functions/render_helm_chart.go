@@ -59,13 +59,28 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		return items, fmt.Errorf("version cannot be empty")
 	}
 
-	configPath := filepath.Join(os.Getenv("HOME"), ".config", "konvert", "helmlib")
-	cachePath := filepath.Join(os.Getenv("HOME"), ".cache", "konvert", "helmlib")
+	tmpdir, err := ioutil.TempDir("", "konvert-helm-")
+	if err != nil {
+		return items, errors.Wrap(err, "unable to create temp directory for helm config and cache")
+	}
+	configPath := filepath.Join(tmpdir, ".config")
+	cachePath := filepath.Join(tmpdir, ".cache")
+	dataPath := filepath.Join(tmpdir, ".data")
 
 	settings := cli.New()
 	settings.RegistryConfig = filepath.Join(configPath, "registry.json")
 	settings.RepositoryConfig = filepath.Join(configPath, "repositories.yaml")
 	settings.RepositoryCache = filepath.Join(cachePath, "repository")
+
+	for k, v := range map[string]string{
+		"HELM_CONFIG_HOME": configPath,
+		"HELM_CACHE_HOME":  cachePath,
+		"HELM_DATA_HOME":   dataPath,
+	} {
+		if err := os.Setenv(k, v); err != nil {
+			return items, errors.Wrapf(err, "unable to set environment variable %q", k)
+		}
+	}
 
 	getters := getter.All(settings)
 	c := downloader.ChartDownloader{
