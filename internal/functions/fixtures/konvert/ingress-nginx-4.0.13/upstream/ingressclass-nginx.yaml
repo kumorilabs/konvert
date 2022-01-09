@@ -1,0 +1,19 @@
+# Source: ingress-nginx/templates/controller-ingressclass.yaml
+# We don't support namespaced ingressClass yet
+# So a ClusterRole and a ClusterRoleBinding is required
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    helm.sh/chart: ingress-nginx-4.0.13
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: konvert
+    app.kubernetes.io/component: controller
+  name: nginx
+  annotations:
+    konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: 'https://kubernetes.github.io/ingress-nginx,ingress-nginx'
+spec:
+  controller: k8s.io/ingress-nginx

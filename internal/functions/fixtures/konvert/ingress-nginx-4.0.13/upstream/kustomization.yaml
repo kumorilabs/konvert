@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+resources:
+- clusterrole-ingress-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- clusterrolebinding-ingress-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- configmap-ingress-nginx-controller.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- deployment-ingress-nginx-controller.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- ingressclass-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- role-ingress-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- rolebinding-ingress-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- service-ingress-nginx-controller-admission.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- service-ingress-nginx-controller.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- serviceaccount-ingress-nginx.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx
+- validatingwebhookconfiguration-ingress-nginx-admission.yaml # konvert.kumorilabs.io/chart: https://kubernetes.github.io/ingress-nginx,ingress-nginx

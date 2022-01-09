@@ -175,6 +175,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 resources:
@@ -225,6 +226,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 namespace: mysql
@@ -275,6 +277,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 resources:
@@ -286,6 +289,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 resources:
@@ -335,6 +339,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 resources: []
@@ -381,6 +386,7 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
     config.kubernetes.io/path: 'kustomization.yaml'
 resources:
@@ -430,11 +436,21 @@ kind: Kustomization
 metadata:
   name: kustomization
   annotations:
+    config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: upstream/base/kustomization.yaml
-    config.kubernetes.io/path: 'upstream/base/kustomization.yaml'
 resources:
 - configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
 - service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+resources:
+- upstream/base
 `,
 		},
 		{

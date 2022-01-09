@@ -177,6 +177,7 @@ func TestKonvertFilter(t *testing.T) {
 		repo          string
 		chart         string
 		version       string
+		path          string
 		namespace     string
 		kustomize     bool
 		values        map[string]interface{}
@@ -203,6 +204,14 @@ func TestKonvertFilter(t *testing.T) {
 			chart:     "cluster-autoscaler",
 			version:   "9.11.0",
 			namespace: "cas",
+		},
+		{
+			name:      "ingress-nginx",
+			repo:      "https://kubernetes.github.io/ingress-nginx",
+			chart:     "ingress-nginx",
+			version:   "4.0.13",
+			path:      "upstream",
+			kustomize: true,
 		},
 		{
 			name:          "mysql",
@@ -235,6 +244,7 @@ func TestKonvertFilter(t *testing.T) {
 			fn.Version = test.version
 			fn.Namespace = test.namespace
 			fn.Values = test.values
+			fn.Path = test.path
 			fn.Kustomize = test.kustomize
 
 			output, err := fn.Filter([]*kyaml.RNode{})
@@ -249,20 +259,23 @@ func TestKonvertFilter(t *testing.T) {
 			}
 
 			var (
-				outputbuf  bytes.Buffer
-				fixturebuf bytes.Buffer
+				outputbuf        bytes.Buffer
+				fixturebuf       bytes.Buffer
+				clearAnnotations = []string{
+					kioutil.LegacyPathAnnotation,  //nolint:staticcheck
+					kioutil.LegacyIndexAnnotation, //nolint:staticcheck
+					kioutil.LegacyIdAnnotation,    //nolint:staticcheck
+					kioutil.PathAnnotation,
+				}
 			)
 
 			err = kio.Pipeline{
 				Inputs: []kio.Reader{&kio.PackageBuffer{Nodes: output}},
 				Outputs: []kio.Writer{
 					kio.ByteWriter{
-						Writer: &outputbuf,
-						Sort:   true,
-						ClearAnnotations: []string{
-							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation, //nolint:staticcheck
-						},
+						Writer:           &outputbuf,
+						Sort:             true,
+						ClearAnnotations: clearAnnotations,
 					},
 				},
 			}.Execute()
@@ -278,12 +291,9 @@ func TestKonvertFilter(t *testing.T) {
 				},
 				Outputs: []kio.Writer{
 					kio.ByteWriter{
-						Writer: &fixturebuf,
-						Sort:   true,
-						ClearAnnotations: []string{
-							kioutil.PathAnnotation,
-							kioutil.LegacyPathAnnotation, //nolint:staticcheck
-						},
+						Writer:           &fixturebuf,
+						Sort:             true,
+						ClearAnnotations: clearAnnotations,
 					},
 				},
 			}.Execute()
@@ -303,7 +313,13 @@ func TestKonvertFilter(t *testing.T) {
 			}
 
 			resid := func(node *kyaml.RNode) string {
-				return fmt.Sprintf("%s/%s~%s/%s", node.GetApiVersion(), node.GetKind(), node.GetNamespace(), node.GetName())
+				return fmt.Sprintf(
+					"%s~%s/%s/%s",
+					node.GetApiVersion(),
+					node.GetKind(),
+					node.GetNamespace(),
+					node.GetName(),
+				)
 			}
 			sort.Slice(outnodes, func(i, j int) bool {
 				return resid(outnodes[i]) < resid(outnodes[j])
@@ -320,6 +336,7 @@ func TestKonvertFilter(t *testing.T) {
 			if !assert.NoError(t, err, test.name) {
 				t.FailNow()
 			}
+
 			assert.Equal(t, fixstr, outstr, test.name)
 		})
 	}

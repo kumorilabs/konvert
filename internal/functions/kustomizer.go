@@ -59,6 +59,35 @@ func (f *KustomizerFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnKustomizerKind)
 }
 
+func (f *KustomizerFunction) kustomizationAtPath(path string, items []*kyaml.RNode) (*kyaml.RNode, bool, error) {
+	kustomizations, err := kustomizationFilter{}.Filter(items)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "unable to run kustomization filter")
+	}
+
+	path = normalizePath(path)
+	var knodes []*kyaml.RNode
+	for _, kustomization := range kustomizations {
+		respath := kustomization.GetAnnotations()[kioutil.PathAnnotation]
+		base := filepath.Dir(respath)
+		if base == path {
+			knodes = append(knodes, kustomization)
+		}
+	}
+
+	var (
+		kustnode *kyaml.RNode
+		created  bool
+	)
+	if len(knodes) > 0 {
+		kustnode = knodes[0]
+	} else {
+		kustnode = f.buildKustomizationNode(path)
+		created = true
+	}
+	return kustnode, created, nil
+}
+
 func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	if f.ResourceAnnotationName == "" {
 		return items, fmt.Errorf("resource annotation name cannot be empty")
@@ -68,15 +97,12 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 	}
 
 	resourceComment := fmt.Sprintf("%s: %s", f.ResourceAnnotationName, f.ResourceAnnotationValue)
-	knodes, err := kustomizationFilter{}.Filter(items)
+
+	kustnode, created, err := f.kustomizationAtPath(f.Path, items)
 	if err != nil {
-		return items, errors.Wrap(err, "unable to run kustomization filter")
+		return items, err
 	}
-	var kustnode *kyaml.RNode
-	if len(knodes) > 0 {
-		kustnode = knodes[0]
-	} else {
-		kustnode = f.buildKustomizationNode()
+	if created {
 		items = append(items, kustnode)
 	}
 
@@ -141,7 +167,11 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 		path := node.GetAnnotations()[kioutil.PathAnnotation]
 		resannotationvalue := node.GetAnnotations()[f.ResourceAnnotationName]
 		if path != "" && f.ResourceAnnotationValue == resannotationvalue {
-			kustresources = append(kustresources, path)
+			// The kustomization.yaml we are writing here lives in the same
+			// directory as the generated resources. So, we don't want to use
+			// the relative path on disk when we write the `resources` section
+			// in the kustomization.yaml. We will just use the file names.
+			kustresources = append(kustresources, filepath.Base(path))
 		}
 	}
 
@@ -159,16 +189,46 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 		}
 	}
 
+	// if we are kustomizing resources in a subdirectory (upstream, for
+	// example), write a kustomization file in the parent with the subdirectory
+	// as a resource
+	// Example:
+	// resources:
+	// - upstream
+	if !isDefaultPath(f.Path) {
+		baseKustNode, created, err := f.kustomizationAtPath(".", items)
+		if err != nil {
+			return items, err
+		}
+		if created {
+			items = append(items, baseKustNode)
+		}
+		resources, err = baseKustNode.Pipe(kyaml.LookupCreate(kyaml.SequenceNode, "resources"))
+		if err != nil {
+			return items, errors.Wrap(err, "unable to get kustomization resources node")
+		}
+		err = resources.PipeE(kyaml.Append(
+			&kyaml.Node{
+				Kind:  kyaml.ScalarNode,
+				Value: f.Path,
+			},
+		))
+	}
+
+	// TODO: add tests around existing kustomization.yamls in the directory tree
+	// we are konverting
+
 	return items, nil
 }
 
-func (f KustomizerFunction) buildKustomizationNode() *kyaml.RNode {
+func (f KustomizerFunction) buildKustomizationNode(kpath string) *kyaml.RNode {
 	template := `
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 metadata:
   name: %s
   annotations:
+    config.kubernetes.io/local-config: 'true'
     %s: %s
 `
 
@@ -176,8 +236,19 @@ metadata:
 		template,
 		"kustomization",
 		kioutil.PathAnnotation,
-		filepath.Join(f.Path, "kustomization.yaml"),
+		filepath.Join(kpath, "kustomization.yaml"),
 	)
 
 	return kyaml.MustParse(kustomizeYaml)
+}
+
+func isDefaultPath(path string) bool {
+	return path == "." || path == ""
+}
+
+func normalizePath(path string) string {
+	if isDefaultPath(path) {
+		return "."
+	}
+	return path
 }
