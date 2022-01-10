@@ -15,14 +15,15 @@ import (
 
 func TestRenderHelmChartFunctionConfig(t *testing.T) {
 	var tests = []struct {
-		name              string
-		input             string
-		expectedRepo      string
-		expectedChart     string
-		expectedVersion   string
-		expectedNamespace string
-		expectedValues    map[string]interface{}
-		expectedError     string
+		name                string
+		input               string
+		expectedReleaseName string
+		expectedRepo        string
+		expectedChart       string
+		expectedVersion     string
+		expectedNamespace   string
+		expectedValues      map[string]interface{}
+		expectedError       string
 	}{
 		{
 			name: "configmap",
@@ -35,16 +36,18 @@ data:
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2
   namespace: mysql
+  releaseName: db01
   values:
     architecture: standalone
     image:
       pullPolicy: Always
       debug: true
 `,
-			expectedRepo:      "https://charts.bitnami.com/bitnami",
-			expectedChart:     "mysql",
-			expectedVersion:   "8.6.2",
-			expectedNamespace: "mysql",
+			expectedReleaseName: "db01",
+			expectedRepo:        "https://charts.bitnami.com/bitnami",
+			expectedChart:       "mysql",
+			expectedVersion:     "8.6.2",
+			expectedNamespace:   "mysql",
 			expectedValues: map[string]interface{}{
 				"image": map[string]interface{}{
 					"pullPolicy": "Always",
@@ -68,6 +71,7 @@ kind: RenderHelmChart
 metadata:
   name: fnconfig
 spec:
+  releaseName: db01
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
   version: 8.6.2
@@ -78,10 +82,11 @@ spec:
       pullPolicy: Always
       debug: true
 `,
-			expectedRepo:      "https://charts.bitnami.com/bitnami",
-			expectedChart:     "mysql",
-			expectedVersion:   "8.6.2",
-			expectedNamespace: "mysql",
+			expectedReleaseName: "db01",
+			expectedRepo:        "https://charts.bitnami.com/bitnami",
+			expectedChart:       "mysql",
+			expectedVersion:     "8.6.2",
+			expectedNamespace:   "mysql",
 			expectedValues: map[string]interface{}{
 				"image": map[string]interface{}{
 					"pullPolicy": "Always",
@@ -144,6 +149,7 @@ spec: |
 				}
 			}
 
+			assert.Equal(t, test.expectedReleaseName, fn.ReleaseName, test.name)
 			assert.Equal(t, test.expectedRepo, fn.Repo, test.name)
 			assert.Equal(t, test.expectedChart, fn.Chart, test.name)
 			assert.Equal(t, test.expectedVersion, fn.Version, test.name)
@@ -156,6 +162,7 @@ spec: |
 func TestRenderHelmChartFilter(t *testing.T) {
 	var tests = []struct {
 		name          string
+		releaseName   string
 		repo          string
 		chart         string
 		version       string
@@ -164,11 +171,12 @@ func TestRenderHelmChartFilter(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name:      "mysql",
-			repo:      "https://charts.bitnami.com/bitnami",
-			chart:     "mysql",
-			version:   "8.6.2",
-			namespace: "mysql",
+			name:        "mysql",
+			releaseName: "db01",
+			repo:        "https://charts.bitnami.com/bitnami",
+			chart:       "mysql",
+			version:     "8.6.2",
+			namespace:   "mysql",
 			values: map[string]interface{}{
 				"auth": map[string]interface{}{
 					"rootPassword": "password",
@@ -210,6 +218,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var fn RenderHelmChartFunction
+			fn.ReleaseName = test.releaseName
 			fn.Repo = test.repo
 			fn.Chart = test.chart
 			fn.Version = test.version

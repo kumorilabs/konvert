@@ -29,6 +29,10 @@ func (f *FixNullNodePortsFunction) Name() string {
 	return fnFixNullNodePortsName
 }
 
+func (f *FixNullNodePortsFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *FixNullNodePortsFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnFixNullNodePortsKind)
 }

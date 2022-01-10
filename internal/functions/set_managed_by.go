@@ -27,6 +27,10 @@ func (f *SetManagedByFunction) Name() string {
 	return fnSetManagedByName
 }
 
+func (f *SetManagedByFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *SetManagedByFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnSetManagedByKind)
 }

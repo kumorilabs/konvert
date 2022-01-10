@@ -25,6 +25,10 @@ func (f *RemoveByAnnotationsFunction) Name() string {
 	return fnRemoveByAnnotationsName
 }
 
+func (f *RemoveByAnnotationsFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *RemoveByAnnotationsFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnRemoveByAnnotationsKind)
 }

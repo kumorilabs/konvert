@@ -145,7 +145,7 @@ spec:
 | `apiVersion`   | konvert.kumorilabs.io/v1alpha1
 | `kind`         | Konvert
 | **`metadata`** |
-| `name`         | The name of the Konvert file. This field is arbitrary and does not affect chart rendering.
+| `name`         | The release name used when rendering the Helm chart.
 | **`spec`**     |
 | `repo`         | The URL for the Helm chart repository.
 | `chart`        | The name of the chart.

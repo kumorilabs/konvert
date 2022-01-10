@@ -33,6 +33,7 @@ func (p *RenderHelmChartProcessor) Process(resourceList *framework.ResourceList)
 
 type RenderHelmChartFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
+	ReleaseName        string                 `json:"releaseName,omitempty" yaml:"releaseName,omitempty"`
 	Repo               string                 `json:"repo,omitempty" yaml:"repo,omitempty"`
 	Chart              string                 `json:"chart,omitempty" yaml:"chart,omitempty"`
 	Version            string                 `json:"version,omitempty" yaml:"version,omitempty"`
@@ -42,6 +43,10 @@ type RenderHelmChartFunction struct {
 
 func (f *RenderHelmChartFunction) Name() string {
 	return fnRenderHelmChartName
+}
+
+func (f *RenderHelmChartFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
 }
 
 func (f *RenderHelmChartFunction) Config(rn *kyaml.RNode) error {
@@ -126,10 +131,15 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		return nil, errors.Wrap(err, "unable to save chart")
 	}
 
+	releaseName := f.ReleaseName
+	if releaseName == "" {
+		releaseName = f.Chart
+	}
+
 	cfg := new(action.Configuration)
 	client := action.NewInstall(cfg)
 	client.DryRun = true
-	client.ReleaseName = f.Chart
+	client.ReleaseName = releaseName
 	client.Replace = true
 	client.ClientOnly = true
 	client.IncludeCRDs = true

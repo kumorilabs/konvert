@@ -2,11 +2,11 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql
+  name: db01-mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/component: primary
   annotations:
@@ -17,23 +17,23 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: mysql
-      app.kubernetes.io/instance: mysql
+      app.kubernetes.io/instance: db01
       app.kubernetes.io/component: primary
-  serviceName: mysql
+  serviceName: db01-mysql
   updateStrategy:
     type: RollingUpdate
   template:
     metadata:
       annotations:
-        checksum/configuration: 308ce137429eaa0d4530a7122701585196ba81a7ef3e4c7405c26f36c1ff6e66
+        checksum/configuration: 497ca8dd005acf277ac0dcd94939ca2fe3b407a27de324e0536356f3fd7e679f
       labels:
         app.kubernetes.io/name: mysql
         helm.sh/chart: mysql-8.6.2
-        app.kubernetes.io/instance: mysql
+        app.kubernetes.io/instance: db01
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: primary
     spec:
-      serviceAccountName: mysql
+      serviceAccountName: db01-mysql
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -41,7 +41,7 @@ spec:
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/name: mysql
-                  app.kubernetes.io/instance: mysql
+                  app.kubernetes.io/instance: db01
                   app.kubernetes.io/component: primary
               topologyKey: kubernetes.io/hostname
             weight: 1
@@ -59,14 +59,14 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql
+              name: db01-mysql
               key: mysql-root-password
         - name: MYSQL_USER
           value: "admin"
         - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql
+              name: db01-mysql
               key: mysql-password
         - name: MYSQL_DATABASE
           value: "my_database"
@@ -133,13 +133,13 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: mysql
+          name: db01-mysql
   volumeClaimTemplates:
   - metadata:
       name: data
       labels:
         app.kubernetes.io/name: mysql
-        app.kubernetes.io/instance: mysql
+        app.kubernetes.io/instance: db01
         app.kubernetes.io/component: primary
     spec:
       accessModes:

@@ -1,12 +1,12 @@
-# Source: mysql/templates/primary/svc.yaml
+# Source: mysql/templates/primary/svc-headless.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql
+  name: db01-mysql-headless
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/component: primary
   annotations:
@@ -14,12 +14,13 @@ metadata:
     konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
 spec:
   type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
   ports:
   - name: mysql
     port: 3306
-    protocol: TCP
     targetPort: mysql
   selector:
     app.kubernetes.io/name: mysql
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/component: primary

@@ -2,11 +2,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mysql
+  name: db01-mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/component: primary
   annotations:

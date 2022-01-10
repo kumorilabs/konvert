@@ -35,6 +35,10 @@ func (f *SetPathAnnotationFunction) Name() string {
 	return fnSetPathAnnotationName
 }
 
+func (f *SetPathAnnotationFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *SetPathAnnotationFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnSetPathAnnotationKind)
 }

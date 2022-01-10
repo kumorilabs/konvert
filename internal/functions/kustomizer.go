@@ -55,6 +55,10 @@ func (f *KustomizerFunction) Name() string {
 	return fnKustomizerName
 }
 
+func (f *KustomizerFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *KustomizerFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnKustomizerKind)
 }

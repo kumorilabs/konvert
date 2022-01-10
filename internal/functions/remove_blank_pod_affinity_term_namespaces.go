@@ -26,6 +26,10 @@ func (f *RemoveBlankPodAffinityTermNamespacesFunction) Name() string {
 	return fnRemoveBlankPodAffinityTermNamespacesName
 }
 
+func (f *RemoveBlankPodAffinityTermNamespacesFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *RemoveBlankPodAffinityTermNamespacesFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnRemoveBlankPodAffinityTermNamespacesKind)
 }

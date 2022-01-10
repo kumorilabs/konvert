@@ -3,27 +3,27 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: mysql
+  name: db01-mysql
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
   annotations:
 secrets:
-  - name: mysql
+  - name: db01-mysql
 ---
 # Source: mysql/templates/secrets.yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysql
+  name: db01-mysql
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
 type: Opaque
 data:
@@ -34,12 +34,12 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mysql
+  name: db01-mysql
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
 data:
@@ -77,12 +77,12 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-headless
+  name: db01-mysql-headless
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
   annotations:
@@ -96,19 +96,19 @@ spec:
       targetPort: mysql
   selector: 
     app.kubernetes.io/name: mysql
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/component: primary
 ---
 # Source: mysql/templates/primary/svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql
+  name: db01-mysql
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
   annotations:
@@ -122,19 +122,19 @@ spec:
       nodePort: null
   selector: 
     app.kubernetes.io/name: mysql
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/component: primary
 ---
 # Source: mysql/templates/primary/statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql
+  name: db01-mysql
   namespace: mysql
   labels:
     app.kubernetes.io/name: mysql
     helm.sh/chart: mysql-8.6.2
-    app.kubernetes.io/instance: mysql
+    app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
 spec:
@@ -142,24 +142,24 @@ spec:
   selector:
     matchLabels: 
       app.kubernetes.io/name: mysql
-      app.kubernetes.io/instance: mysql
+      app.kubernetes.io/instance: db01
       app.kubernetes.io/component: primary
-  serviceName: mysql
+  serviceName: db01-mysql
   updateStrategy:
     type: RollingUpdate
   template:
     metadata:
       annotations:
-        checksum/configuration: 8b521e1b86ef4712200e26d6b97e05d400eb28a5f2cf26fd2d4e7cdb859ff247
+        checksum/configuration: 936ef7d1f4a8a5a57483a5ef0447d273152dd20fa5f1ad049f57237f83a98bae
       labels:
         app.kubernetes.io/name: mysql
         helm.sh/chart: mysql-8.6.2
-        app.kubernetes.io/instance: mysql
+        app.kubernetes.io/instance: db01
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: primary
     spec:
       
-      serviceAccountName: mysql
+      serviceAccountName: db01-mysql
       affinity:
         podAffinity:
           
@@ -169,7 +169,7 @@ spec:
                 labelSelector:
                   matchLabels:
                     app.kubernetes.io/name: mysql
-                    app.kubernetes.io/instance: mysql
+                    app.kubernetes.io/instance: db01
                     app.kubernetes.io/component: primary
                 namespaces:
                   - "mysql"
@@ -191,14 +191,14 @@ spec:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql
+                  name: db01-mysql
                   key: mysql-root-password
             - name: MYSQL_USER
               value: "admin"
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql
+                  name: db01-mysql
                   key: mysql-password
             - name: MYSQL_DATABASE
               value: "my_database"
@@ -265,13 +265,13 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: mysql
+            name: db01-mysql
   volumeClaimTemplates:
     - metadata:
         name: data
         labels: 
           app.kubernetes.io/name: mysql
-          app.kubernetes.io/instance: mysql
+          app.kubernetes.io/instance: db01
           app.kubernetes.io/component: primary
       spec:
         accessModes:

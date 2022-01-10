@@ -35,6 +35,10 @@ func (f *KonvertFunction) Name() string {
 	return fnKonvertName
 }
 
+func (f *KonvertFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnKonvertKind)
 }
@@ -62,11 +66,12 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	runKonvert := func() ([]*kyaml.RNode, error) {
 		var items []*kyaml.RNode
 		renderHelmChart := RenderHelmChartFunction{
-			Repo:      f.Repo,
-			Chart:     f.Chart,
-			Version:   f.Version,
-			Values:    f.Values,
-			Namespace: f.Namespace,
+			ReleaseName: f.ResourceMeta.Name,
+			Repo:        f.Repo,
+			Chart:       f.Chart,
+			Version:     f.Version,
+			Values:      f.Values,
+			Namespace:   f.Namespace,
 		}
 		items, err := renderHelmChart.Filter(items)
 		if err != nil {

@@ -181,15 +181,17 @@ func TestKonvertFilter(t *testing.T) {
 		namespace     string
 		kustomize     bool
 		values        map[string]interface{}
+		releaseName   string
 		expectedError string
 	}{
 		{
-			name:      "mysql",
-			repo:      "https://charts.bitnami.com/bitnami",
-			chart:     "mysql",
-			version:   "8.6.2",
-			namespace: "",
-			kustomize: true,
+			name:        "mysql",
+			releaseName: "db01",
+			repo:        "https://charts.bitnami.com/bitnami",
+			chart:       "mysql",
+			version:     "8.6.2",
+			namespace:   "",
+			kustomize:   true,
 			values: map[string]interface{}{
 				"auth": map[string]interface{}{
 					"rootPassword": "password",
@@ -239,6 +241,7 @@ func TestKonvertFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var fn KonvertFunction
+			fn.ResourceMeta.Name = test.releaseName
 			fn.Repo = test.repo
 			fn.Chart = test.chart
 			fn.Version = test.version

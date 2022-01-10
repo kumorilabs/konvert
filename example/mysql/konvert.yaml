@@ -1,7 +1,7 @@
 apiVersion: konvert.kumorilabs.io/v1alpha1
 kind: Konvert
 metadata:
-  name: mysql
+  name: db01
 spec:
   chart: mysql
   kustomize: true

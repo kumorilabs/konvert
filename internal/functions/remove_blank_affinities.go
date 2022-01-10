@@ -26,6 +26,10 @@ func (f *RemoveBlankAffinitiesFunction) Name() string {
 	return fnRemoveBlankAffinitiesName
 }
 
+func (f *RemoveBlankAffinitiesFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *RemoveBlankAffinitiesFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnRemoveBlankAffinitiesKind)
 }

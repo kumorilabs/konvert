@@ -24,6 +24,11 @@ type RemoveBlankNamespaceFunction struct {
 func (f *RemoveBlankNamespaceFunction) Name() string {
 	return fnRemoveBlankNamespaceName
 }
+
+func (f *RemoveBlankNamespaceFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *RemoveBlankNamespaceFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnRemoveBlankNamespaceKind)
 }

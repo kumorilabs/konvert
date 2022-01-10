@@ -33,6 +33,10 @@ func (f *SetKonvertAnnotationsFunction) Name() string {
 	return fnSetKonvertAnnotationsName
 }
 
+func (f *SetKonvertAnnotationsFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
+	f.ResourceMeta = meta
+}
+
 func (f *SetKonvertAnnotationsFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnSetKonvertAnnotationsKind)
 }

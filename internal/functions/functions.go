@@ -32,6 +32,7 @@ type konvertFunction interface {
 	kio.Filter
 	Config(*kyaml.RNode) error
 	Name() string
+	SetResourceMeta(kyaml.ResourceMeta)
 }
 
 func validGVK(rn *kyaml.RNode, apiVersion, kind string) bool {
@@ -83,6 +84,12 @@ func unmarshalConfig(fn konvertFunction, rn *kyaml.RNode, field string) error {
 }
 
 func loadConfig(fn konvertFunction, rn *kyaml.RNode, kind string) error {
+	meta, err := rn.GetMeta()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get resource meta from %s", fn.Name())
+	}
+	fn.SetResourceMeta(meta)
+
 	switch {
 	case validGVK(rn, "v1", "ConfigMap"):
 		return unmarshalConfig(fn, rn, "data")
