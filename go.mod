@@ -3,8 +3,7 @@ module github.com/kumorilabs/konvert
 go 1.15
 
 require (
-	github.com/containerd/containerd v1.5.8 // indirect
-	github.com/opencontainers/image-spec v1.0.2 // indirect
+	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/opencontainers/runc v1.0.3 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
