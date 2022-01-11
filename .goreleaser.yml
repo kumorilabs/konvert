@@ -103,7 +103,7 @@ docker_manifests:
   image_templates:
   - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
   - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
-- name_template: "kumorilabs/{{ .ProjectName }}:latest"
+- name_template: "ghcr.io/kumorilabs/{{ .ProjectName }}:latest"
   image_templates:
   - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-amd64"
   - "ghcr.io/kumorilabs/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
