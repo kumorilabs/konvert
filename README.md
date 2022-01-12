@@ -33,6 +33,8 @@ apiVersion: konvert.kumorilabs.io/v1alpha1
 kind: Konvert
 metadata:
   name: cert-manager
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
   kustomize: true
   repo: https://charts.jetstack.io
