@@ -696,6 +696,75 @@ data:
 `,
 			kustomization: ``,
 		},
+		{
+			name:            "with-duplicate-resources",
+			annotationName:  annotationKonvertChart,
+			annotationValue: "https://charts.bitnami.com/bitnami,mysql",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'service-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+spec:
+  type: ClusterIP
+  ports:
+  - name: mysql
+    port: 3306
+    protocol: TCP
+    targetPort: mysql
+  selector:
+    app.kubernetes.io/name: mysql
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+  annotations:
+    internal.config.kubernetes.io/path: 'configmap-mysql.yaml'
+    konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
+data:
+  my.cnf: |2-
+
+    [mysqld]
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+- some-secret.yaml
+- my-secret.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mychart
+- my-secret.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mychart
+- configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+`,
+			kustomization: `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomization
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    internal.config.kubernetes.io/path: kustomization.yaml
+    config.kubernetes.io/path: 'kustomization.yaml'
+resources:
+- some-service.yaml
+- some-secret.yaml
+- my-secret.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mychart
+- configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+- service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
+`,
+		},
 	}
 
 	for _, test := range tests {

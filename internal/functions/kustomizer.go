@@ -104,10 +104,10 @@ func (f *KustomizerFunction) kustomizeResources(kustnode *kyaml.RNode, resitems 
 	if err != nil {
 		return errors.Wrap(err, "unable to read element from kustomization resources")
 	}
-	var preservedResources []*kyaml.Node
+	var resourceItems []*kyaml.Node
 	for _, e := range reselems {
 		if e.YNode().LineComment != "# "+resourceComment {
-			preservedResources = append(preservedResources, e.YNode())
+			resourceItems = append(resourceItems, e.YNode())
 		}
 	}
 
@@ -120,25 +120,25 @@ func (f *KustomizerFunction) kustomizeResources(kustnode *kyaml.RNode, resitems 
 		return errors.Wrap(err, "unable to get kustomization resources node")
 	}
 
-	for _, res := range preservedResources {
-		err = resources.PipeE(
-			kyaml.Append(res),
-		)
-		if err != nil {
-			return errors.Wrap(err, "unable to append to kustomization resources")
+	for _, res := range resitems {
+		resitem := &kyaml.Node{
+			Kind:        kyaml.ScalarNode,
+			Value:       res,
+			LineComment: resourceComment,
 		}
+		resourceItems = append(resourceItems, resitem)
 	}
 
-	for _, res := range resitems {
-		err = resources.PipeE(kyaml.Append(
-			&kyaml.Node{
-				Kind:        kyaml.ScalarNode,
-				Value:       res,
-				LineComment: resourceComment,
-			},
-		))
-		if err != nil {
-			return errors.Wrapf(err, "unable to create resource node for %q", res)
+	resitemmap := make(map[string]bool)
+	for _, res := range resourceItems {
+		if _, val := resitemmap[res.Value]; !val {
+			resitemmap[res.Value] = true
+			err = resources.PipeE(
+				kyaml.Append(res),
+			)
+			if err != nil {
+				return errors.Wrap(err, "unable to append to kustomization resources")
+			}
 		}
 	}
 	return nil
