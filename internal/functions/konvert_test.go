@@ -8,10 +8,151 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+func TestKonvertProcess(t *testing.T) {
+	// this tests functionConfig discovery
+	// - provided by the framework
+	// - included in input
+	// - or not found at all (error)
+	var tests = []struct {
+		name           string
+		input          string
+		functionConfig string
+		expectedError  string
+	}{
+		{
+			name:  "has-function-config",
+			input: "",
+			functionConfig: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+		},
+		{
+			name: "has-function-config-in-input",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  metadata:
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  env: test
+  logLevel: debug
+---
+apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			functionConfig: "",
+		},
+		{
+			name: "no-function-config",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  metadata:
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  env: test
+  logLevel: debug
+`,
+			functionConfig: "",
+			expectedError:  "failed to configure function",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			items, err := kio.ParseAll(test.input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			var fnconfig *kyaml.RNode
+			if test.functionConfig != "" {
+				fnconfig, err = kyaml.Parse(test.functionConfig)
+				if !assert.NoError(t, err, test.name) {
+					t.FailNow()
+				}
+			}
+
+			reslist := &framework.ResourceList{
+				Items:          items,
+				FunctionConfig: fnconfig,
+			}
+			processor := &KonvertProcessor{}
+			err = processor.Process(reslist)
+
+			if test.expectedError != "" {
+				if !assert.NotNil(t, err, test.name) {
+					t.FailNow()
+				}
+				if !assert.Contains(t, err.Error(), test.expectedError, test.name) {
+					t.FailNow()
+				}
+			} else {
+				if !assert.NoError(t, err, test.name) {
+					t.FailNow()
+				}
+			}
+		})
+	}
+}
 
 func TestKonvertFunctionConfig(t *testing.T) {
 	var tests = []struct {

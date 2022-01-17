@@ -16,6 +16,17 @@ const (
 type KonvertProcessor struct{}
 
 func (p *KonvertProcessor) Process(resourceList *framework.ResourceList) error {
+	// if a function config is not provided by the framework,
+	// look for one in the input items
+	// this will only work for the Konvert kind, not ConfigMaps
+	if resourceList.FunctionConfig == nil {
+		for _, item := range resourceList.Items {
+			if item.GetKind() == fnKonvertKind && item.GetApiVersion() == fnConfigAPIVersion {
+				resourceList.FunctionConfig = item
+				break
+			}
+		}
+	}
 	return runFn(&KonvertFunction{}, resourceList)
 }
 
