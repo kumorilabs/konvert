@@ -2,9 +2,11 @@ package functions
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -69,7 +71,19 @@ func (f *KonvertFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
 }
 
 func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
-	return loadConfig(f, rn, fnKonvertKind)
+	err := loadConfig(f, rn, fnKonvertKind)
+	if err != nil {
+		return err
+	}
+
+	fnconfigPath := rn.GetAnnotations()[kioutil.PathAnnotation]
+	basedir := filepath.Dir(fnconfigPath)
+
+	if !isDefaultPath(basedir) {
+		f.Path = filepath.Join(basedir, f.Path)
+	}
+
+	return nil
 }
 
 func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
