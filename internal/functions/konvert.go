@@ -16,18 +16,36 @@ const (
 type KonvertProcessor struct{}
 
 func (p *KonvertProcessor) Process(resourceList *framework.ResourceList) error {
-	// if a function config is not provided by the framework,
-	// look for one in the input items
-	// this will only work for the Konvert kind, not ConfigMaps
-	if resourceList.FunctionConfig == nil {
-		for _, item := range resourceList.Items {
-			if item.GetKind() == fnKonvertKind && item.GetApiVersion() == fnConfigAPIVersion {
-				resourceList.FunctionConfig = item
-				break
-			}
+	fnconfigs := p.functionConfigs(resourceList)
+	for _, fnconfig := range fnconfigs {
+		resourceList.FunctionConfig = fnconfig
+		err := runFn(&KonvertFunction{}, resourceList)
+		if err != nil {
+			return err
 		}
 	}
-	return runFn(&KonvertFunction{}, resourceList)
+	return nil
+}
+
+func (p *KonvertProcessor) functionConfigs(resourceList *framework.ResourceList) []*kyaml.RNode {
+	// if a function config is not provided by the framework,
+	// look for them in the input items
+	// this will only work for the Konvert kind, not ConfigMaps
+	// if a function config is provided by the framework AND one or more
+	// function configs are in the input items, we still only process the
+	// fnconfig provided by the framework b/c we are assuming the consumer
+	// intentionally wants to only process the specified function config
+	if resourceList.FunctionConfig != nil {
+		return []*kyaml.RNode{resourceList.FunctionConfig}
+	}
+
+	var fnconfigs []*kyaml.RNode
+	for _, item := range resourceList.Items {
+		if item.GetKind() == fnKonvertKind && item.GetApiVersion() == fnConfigAPIVersion {
+			fnconfigs = append(fnconfigs, item)
+		}
+	}
+	return fnconfigs
 }
 
 type KonvertFunction struct {

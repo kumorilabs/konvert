@@ -18,12 +18,11 @@ func TestKonvertProcess(t *testing.T) {
 	// this tests functionConfig discovery
 	// - provided by the framework
 	// - included in input
-	// - or not found at all (error)
+	// - or not found at all (no-op)
 	var tests = []struct {
 		name           string
 		input          string
 		functionConfig string
-		expectedError  string
 	}{
 		{
 			name:  "has-function-config",
@@ -112,7 +111,6 @@ data:
   logLevel: debug
 `,
 			functionConfig: "",
-			expectedError:  "failed to configure function",
 		},
 	}
 
@@ -138,18 +136,211 @@ data:
 			processor := &KonvertProcessor{}
 			err = processor.Process(reslist)
 
-			if test.expectedError != "" {
-				if !assert.NotNil(t, err, test.name) {
-					t.FailNow()
-				}
-				if !assert.Contains(t, err.Error(), test.expectedError, test.name) {
-					t.FailNow()
-				}
-			} else {
+			assert.NoError(t, err, test.name)
+		})
+	}
+}
+
+func TestKonvertFunctionConfigDiscovery(t *testing.T) {
+	var tests = []struct {
+		name           string
+		input          string
+		functionConfig string
+		expectedCount  int
+	}{
+		{
+			name:  "resource-list-includes-function-config",
+			input: "",
+			functionConfig: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			expectedCount: 1,
+		},
+		{
+			name: "resource-list-and-input-includes-function-config",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  metadata:
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  env: test
+  logLevel: debug
+---
+apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: another-fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			functionConfig: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			expectedCount: 1,
+		},
+		{
+			name: "no-function-config",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  metadata:
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  env: test
+  logLevel: debug
+`,
+			functionConfig: "",
+			expectedCount:  0,
+		},
+		{
+			name: "resource-list-and-input-includes-function-config",
+			input: `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  metadata:
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  env: test
+  logLevel: debug
+---
+apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+---
+apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: another-fnconfig
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			expectedCount: 2,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			items, err := kio.ParseAll(test.input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			var fnconfig *kyaml.RNode
+			if test.functionConfig != "" {
+				fnconfig, err = kyaml.Parse(test.functionConfig)
 				if !assert.NoError(t, err, test.name) {
 					t.FailNow()
 				}
 			}
+
+			reslist := &framework.ResourceList{
+				Items:          items,
+				FunctionConfig: fnconfig,
+			}
+			processor := &KonvertProcessor{}
+			fnconfigs := processor.functionConfigs(reslist)
+
+			assert.Equal(t, test.expectedCount, len(fnconfigs), test.name)
 		})
 	}
 }
@@ -217,6 +408,8 @@ metadata:
 kind: Konvert
 metadata:
   name: fnconfig
+  annotations:
+    internal.config.kubernetes.io/path: 'konvert.yaml'
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
@@ -236,6 +429,43 @@ spec:
 			expectedVersion:   "8.6.2",
 			expectedNamespace: "mysql",
 			expectedPath:      "upstream",
+			expectedPattern:   "%s_%s.yaml",
+			expectedKustomize: true,
+			expectedValues: map[string]interface{}{
+				"image": map[string]interface{}{
+					"pullPolicy": "Always",
+					"debug":      true,
+				},
+				"architecture": "standalone",
+			},
+		},
+		{
+			name: "function-config-in-subdir",
+			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: fnconfig
+  annotations:
+    internal.config.kubernetes.io/path: 'subdir/konvert.yaml'
+spec:
+  chart: mysql
+  repo: https://charts.bitnami.com/bitnami
+  version: 8.6.2
+  namespace: mysql
+  path: "upstream"
+  pattern: "%s_%s.yaml"
+  kustomize: true
+  values:
+    architecture: standalone
+    image:
+      pullPolicy: Always
+      debug: true
+`,
+			expectedRepo:      "https://charts.bitnami.com/bitnami",
+			expectedChart:     "mysql",
+			expectedVersion:   "8.6.2",
+			expectedNamespace: "mysql",
+			expectedPath:      "subdir/upstream",
 			expectedPattern:   "%s_%s.yaml",
 			expectedKustomize: true,
 			expectedValues: map[string]interface{}{
