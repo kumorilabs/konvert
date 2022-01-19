@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	termutil "github.com/andrew-d/go-termutil"
 	"github.com/kumorilabs/konvert/internal/konvert"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -21,6 +22,13 @@ type root struct {
 }
 
 func newRootCommand(args []string) *cobra.Command {
+	fncommand := newFnCommand(args)
+
+	if !termutil.Isatty(os.Stdin.Fd()) {
+		log.Info("running in fn mode")
+		return fncommand
+	}
+
 	root := &root{}
 	rootCmd := &cobra.Command{
 		Use:   "konvert",
@@ -38,7 +46,7 @@ func newRootCommand(args []string) *cobra.Command {
 	}
 
 	rootCmd.SetVersionTemplate(`{{.Version}}`)
-	rootCmd.AddCommand(newFnCommand(args))
+	rootCmd.AddCommand(fncommand)
 
 	rootCmd.Flags().StringVarP(&root.filepath, "file", "f", "konvert.yaml", "the path to the konvert configuration.")
 

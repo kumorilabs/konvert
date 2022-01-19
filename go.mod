@@ -3,6 +3,7 @@ module github.com/kumorilabs/konvert
 go 1.15
 
 require (
+	github.com/andrew-d/go-termutil v0.0.0-20150726205930-009166a695a2 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/opencontainers/runc v1.0.3 // indirect
 	github.com/pkg/errors v0.9.1
