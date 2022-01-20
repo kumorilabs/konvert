@@ -17,6 +17,10 @@ const (
 
 type KonvertProcessor struct{}
 
+func IsKonvertFile(item *kyaml.RNode) bool {
+	return item.GetKind() == fnKonvertKind && item.GetApiVersion() == fnConfigAPIVersion
+}
+
 func (p *KonvertProcessor) Process(resourceList *framework.ResourceList) error {
 	fnconfigs := p.functionConfigs(resourceList)
 	for _, fnconfig := range fnconfigs {
@@ -43,7 +47,7 @@ func (p *KonvertProcessor) functionConfigs(resourceList *framework.ResourceList)
 
 	var fnconfigs []*kyaml.RNode
 	for _, item := range resourceList.Items {
-		if item.GetKind() == fnKonvertKind && item.GetApiVersion() == fnConfigAPIVersion {
+		if IsKonvertFile(item) {
 			fnconfigs = append(fnconfigs, item)
 		}
 	}

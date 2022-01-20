@@ -1,6 +1,7 @@
 package konvert
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,36 +12,72 @@ import (
 )
 
 func TestNewKonverter(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "konverter-new")
-	require.NoError(t, err, "TempDir")
-	defer func() {
-		os.RemoveAll(tmpDir)
-	}()
-	baseDir := filepath.Join(tmpDir, "base")
-	err = os.MkdirAll(baseDir, 0755)
-	require.NoError(t, err, "MkdirAll")
+	var tests = []struct {
+		name            string
+		path            string
+		konvertFiles    []string
+		expectedFnCount int
+	}{
+		{
+			name: "single-file-path",
+			path: "konvert.yaml",
+			konvertFiles: []string{
+				"konvert.yaml",
+			},
+			expectedFnCount: 1,
+		},
+		{
+			name: "single-file-path-with-multiple-in-package",
+			path: "konvert.yaml",
+			konvertFiles: []string{
+				"konvert.yaml",
+				"another-konvert.yaml",
+			},
+			expectedFnCount: 1,
+		},
+		{
+			name: "dir-path",
+			path: "",
+			konvertFiles: []string{
+				"konvert.yaml",
+			},
+			expectedFnCount: 1,
+		},
+		{
+			name: "dir-path-with-multiple-in-package",
+			path: "",
+			konvertFiles: []string{
+				"konvert.yaml",
+				"another-konvert.yaml",
+				"nested/konvert.yaml",
+			},
+			expectedFnCount: 3,
+		},
+	}
 
-	err = ioutil.WriteFile(
-		filepath.Join(baseDir, "konvert.yaml"),
-		[]byte("\n"),
-		0644,
-	)
-	require.NoError(t, err, "WriteFile")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tmpDir, err := ioutil.TempDir("", "konverter-new")
+			require.NoError(t, err, "TempDir")
+			defer func() {
+				os.RemoveAll(tmpDir)
+			}()
+			baseDir := filepath.Join(tmpDir, "base")
+			err = os.MkdirAll(baseDir, 0755)
+			require.NoError(t, err, "MkdirAll")
 
-	wd, err := os.Getwd()
-	require.NoError(t, err, "Getwd")
-	require.NoError(t, os.Chdir(tmpDir), "Chdir-temp")
-	defer func() {
-		require.NoError(t, os.Chdir(wd), "Chdir-test")
-	}()
+			for _, kf := range test.konvertFiles {
+				err = testWriteKonvert(baseDir, kf)
+				require.NoError(t, err, "testWriteKonvert")
+			}
 
-	paths := []string{"base/konvert.yaml", "base"}
-	for _, path := range paths {
-		k, err := New(path)
-		require.NoError(t, err, "New")
+			path := filepath.Join(baseDir, test.path)
 
-		assert.Equal(t, "base", k.path, "path")
-		assert.Equal(t, "base/konvert.yaml", k.konvertFile, "konvertFile")
+			k, err := New(path)
+			require.NoError(t, err, "New")
+			assert.Equal(t, baseDir, k.path, "path")
+			assert.Equal(t, test.expectedFnCount, len(k.fns), "fns")
+		})
 	}
 }
 
@@ -54,24 +91,15 @@ func TestKonverterRun(t *testing.T) {
 	err = os.MkdirAll(baseDir, 0755)
 	require.NoError(t, err, "MkdirAll")
 
-	konvertyaml := `apiVersion: konvert.kumorilabs.io/v1alpha1
-kind: Konvert
-metadata:
-  name: cluster-autoscaler
-spec:
-  chart: cluster-autoscaler
-  kustomize: true
-  repo: https://kubernetes.github.io/autoscaler
-  version: 9.11.0
-  namespace: cas
-`
-
-	err = ioutil.WriteFile(
-		filepath.Join(baseDir, "konvert.yaml"),
-		[]byte(konvertyaml),
-		0644,
+	err = testWriteKonvertYAML(
+		baseDir,
+		"konvert.yaml",
+		"cluster-autoscaler",
+		"https://kubernetes.github.io/autoscaler",
+		"9.11.0",
+		"cas",
 	)
-	require.NoError(t, err, "WriteFile")
+	require.NoError(t, err, "testWriteKonvertYAML")
 
 	err = Konvert(baseDir)
 	require.NoError(t, err, "Konvert")
@@ -79,4 +107,42 @@ spec:
 	files, err := os.ReadDir(baseDir)
 	require.NoError(t, err, "ReadDir")
 	assert.True(t, len(files) > 1, "chart-rendered")
+}
+
+func testWriteKonvert(baseDir, filename string) error {
+	return testWriteKonvertYAML(
+		baseDir,
+		filename,
+		"cluster-autoscaler",
+		"https://kubernetes.github.io/autoscaler",
+		"9.11.0",
+		"cas",
+	)
+}
+
+func testWriteKonvertYAML(baseDir, filename, chart, repo, version, namespace string) error {
+	konvertyaml := fmt.Sprintf(`apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: %s
+spec:
+  chart: %s
+  kustomize: true
+  repo: %s
+  version: %s
+  namespace: %s
+`,
+		chart, chart, repo, version, namespace,
+	)
+
+	fn := filepath.Join(baseDir, filename)
+	if err := os.MkdirAll(filepath.Dir(fn), 0755); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(
+		fn,
+		[]byte(konvertyaml),
+		0644,
+	)
 }
