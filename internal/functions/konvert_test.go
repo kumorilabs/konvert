@@ -550,6 +550,7 @@ func TestKonvertFilter(t *testing.T) {
 		version       string
 		path          string
 		namespace     string
+		skipHooks     bool
 		kustomize     bool
 		values        map[string]interface{}
 		releaseName   string
@@ -585,6 +586,7 @@ func TestKonvertFilter(t *testing.T) {
 			version:   "4.0.13",
 			path:      "upstream",
 			kustomize: true,
+			skipHooks: true,
 		},
 		{
 			name:          "mysql",
@@ -620,6 +622,7 @@ func TestKonvertFilter(t *testing.T) {
 			fn.Values = test.values
 			fn.Path = test.path
 			fn.Kustomize = test.kustomize
+			fn.SkipHooks = test.skipHooks
 
 			output, err := fn.Filter([]*kyaml.RNode{})
 			if test.expectedError != "" {
@@ -636,9 +639,12 @@ func TestKonvertFilter(t *testing.T) {
 				outputbuf        bytes.Buffer
 				fixturebuf       bytes.Buffer
 				clearAnnotations = []string{
-					kioutil.LegacyPathAnnotation,  //nolint:staticcheck
+					//lint:ignore SA1019 explicitly clearing legacy annotations that may have been added by framework
+					kioutil.LegacyPathAnnotation, //nolint:staticcheck
+					//lint:ignore SA1019 explicitly clearing legacy annotations that may have been added by framework
 					kioutil.LegacyIndexAnnotation, //nolint:staticcheck
-					kioutil.LegacyIdAnnotation,    //nolint:staticcheck
+					//lint:ignore SA1019 explicitly clearing legacy annotations that may have been added by framework
+					kioutil.LegacyIdAnnotation, //nolint:staticcheck
 					kioutil.PathAnnotation,
 				}
 			)

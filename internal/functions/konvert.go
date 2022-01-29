@@ -64,6 +64,8 @@ type KonvertFunction struct {
 	Pattern            string                 `yaml:"pattern,omitempty"`
 	Kustomize          bool                   `yaml:"kustomize,omitempty"`
 	Values             map[string]interface{} `json:"values,omitempty"`
+	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
+	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 }
 
 func (f *KonvertFunction) Name() string {
@@ -119,6 +121,8 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Version:     f.Version,
 			Values:      f.Values,
 			Namespace:   f.Namespace,
+			SkipHooks:   f.SkipHooks,
+			SkipTests:   f.SkipTests,
 		}
 		items, err := renderHelmChart.Filter(items)
 		if err != nil {

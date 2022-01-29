@@ -168,6 +168,8 @@ func TestRenderHelmChartFilter(t *testing.T) {
 		version       string
 		namespace     string
 		values        map[string]interface{}
+		skipHooks     bool
+		skipTests     bool
 		expectedError string
 	}{
 		{
@@ -191,6 +193,29 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			chart:     "cluster-autoscaler",
 			version:   "9.11.0",
 			namespace: "cas",
+		},
+		{
+			name:      "ingress-nginx",
+			repo:      "https://kubernetes.github.io/ingress-nginx",
+			chart:     "ingress-nginx",
+			version:   "4.0.16",
+			namespace: "ingress",
+		},
+		{
+			name:      "ingress-nginx-no-hooks",
+			repo:      "https://kubernetes.github.io/ingress-nginx",
+			chart:     "ingress-nginx",
+			version:   "4.0.16",
+			namespace: "ingress",
+			skipHooks: true,
+		},
+		{
+			name:      "kong",
+			repo:      "https://charts.konghq.com",
+			chart:     "kong",
+			version:   "2.6.4",
+			namespace: "kong",
+			skipTests: true,
 		},
 		{
 			name:          "mysql",
@@ -224,6 +249,8 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			fn.Version = test.version
 			fn.Namespace = test.namespace
 			fn.Values = test.values
+			fn.SkipHooks = test.skipHooks
+			fn.SkipTests = test.skipTests
 
 			output, err := fn.Filter([]*kyaml.RNode{})
 			if test.expectedError != "" {
@@ -249,6 +276,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
+							//lint:ignore SA1019 explicitly clearing legacy annotations that may have been added by framework
 							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},
@@ -261,7 +289,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			err = kio.Pipeline{
 				Inputs: []kio.Reader{
 					kio.LocalPackageReader{
-						PackagePath: fmt.Sprintf("./fixtures/render_helm_chart/%s-%s", test.chart, test.version),
+						PackagePath: fmt.Sprintf("./fixtures/render_helm_chart/%s-%s", test.name, test.version),
 					},
 				},
 				Outputs: []kio.Writer{
@@ -270,6 +298,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 						Sort:   true,
 						ClearAnnotations: []string{
 							kioutil.PathAnnotation,
+							//lint:ignore SA1019 explicitly clearing legacy annotations that may have been added by framework
 							kioutil.LegacyPathAnnotation, //nolint:staticcheck
 						},
 					},

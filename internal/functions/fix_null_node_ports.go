@@ -3,7 +3,6 @@ package functions
 import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -59,7 +58,7 @@ func (f *FixNullNodePortsFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode,
 				}
 				if nodePort != nil {
 					if nodePort.IsNilOrEmpty() {
-						_, err = yaml.Clear("nodePort").Filter(servicePort)
+						_, err = kyaml.Clear("nodePort").Filter(servicePort)
 						if err != nil {
 							return items, errors.Wrap(err, "unable to remove null node port")
 						}

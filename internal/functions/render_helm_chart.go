@@ -3,17 +3,18 @@ package functions
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
+	helmrelease "helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
@@ -39,6 +40,8 @@ type RenderHelmChartFunction struct {
 	Version            string                 `json:"version,omitempty" yaml:"version,omitempty"`
 	Values             map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 	Namespace          string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
+	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 }
 
 func (f *RenderHelmChartFunction) Name() string {
@@ -112,7 +115,9 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	}
 	defer func() {
 		if err := os.RemoveAll(tmpDir); err != nil {
-			log.Printf("unable to remove temporary directory %s: %s", tmpDir, err)
+			log.WithError(err).
+				WithField("directory", tmpDir).
+				Error("unable to remove temporary directory")
 		}
 	}()
 
@@ -153,6 +158,27 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	}
 
 	manifests := releaseutil.SplitManifests(release.Manifest)
+
+	if !f.SkipHooks {
+		isTestHook := func(h *helmrelease.Hook) bool {
+			for _, e := range h.Events {
+				if e == helmrelease.HookTest {
+					return true
+				}
+			}
+			return false
+		}
+
+		for _, hook := range release.Hooks {
+			if f.SkipTests && isTestHook(hook) {
+				continue
+			}
+			log.WithFields(
+				log.Fields{"kind": hook.Kind, "name": hook.Name, "path": hook.Path, "weight": hook.Weight},
+			).Debug("adding hook")
+			manifests[hook.Path] = fmt.Sprintf("---\n# Source: %s\n%s\n", hook.Path, hook.Manifest)
+		}
+	}
 
 	var renderedNodes []*kyaml.RNode
 	for _, manifest := range manifests {

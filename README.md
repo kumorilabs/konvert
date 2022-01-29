@@ -142,20 +142,22 @@ spec:
 ```
 
 
-| Field          | Description
-|----------------|---------------------------------------------------------------------------------------------------------------------------------------------
-| `apiVersion`   | konvert.kumorilabs.io/v1alpha1
-| `kind`         | Konvert
-| **`metadata`** |
-| `name`         | The release name used when rendering the Helm chart.
-| **`spec`**     |
-| `repo`         | The URL for the Helm chart repository.
-| `chart`        | The name of the chart.
-| `version`      | The version of the chart.
-| `namespace`    | The namespace to use when rendering the chart. When kustomize is `true`, this will also configure the Kustomize namespace transformer. 
-| `path`         | The path (relative to the Konvert file) in which to render the chart.
-| `kustomize`    | If `true`, `konvert` will write a kustomization.yaml for the generated chart resources. If `path` is configured, it will write a kustomization.yaml including the rendered chart subdirectory at the same level as the Konvert file.
-| `values`       | The configuration values to use when rendering the chart.
+| Field          | Description                                                                                                                                                                                                                          |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `apiVersion`   | konvert.kumorilabs.io/v1alpha1                                                                                                                                                                                                       |
+| `kind`         | Konvert                                                                                                                                                                                                                              |
+| **`metadata`** |                                                                                                                                                                                                                                      |
+| `name`         | The release name used when rendering the Helm chart.                                                                                                                                                                                 |
+| **`spec`**     |                                                                                                                                                                                                                                      |
+| `repo`         | The URL for the Helm chart repository.                                                                                                                                                                                               |
+| `chart`        | The name of the chart.                                                                                                                                                                                                               |
+| `version`      | The version of the chart.                                                                                                                                                                                                            |
+| `namespace`    | The namespace to use when rendering the chart. When kustomize is `true`, this will also configure the Kustomize namespace transformer.                                                                                               |
+| `path`         | The path (relative to the Konvert file) in which to render the chart.                                                                                                                                                                |
+| `kustomize`    | If `true`, `konvert` will write a kustomization.yaml for the generated chart resources. If `path` is configured, it will write a kustomization.yaml including the rendered chart subdirectory at the same level as the Konvert file. |
+| `values`       | The configuration values to use when rendering the chart.                                                                                                                                                                            |
+| `skipHooks`    | If `true`, `konvert` will not render Helm [hook](https://helm.sh/docs/topics/charts_hooks/) resources.                                                                                                                               |
+| `skipTests`    | If `true`, `konvert` will not render Helm test resources.                                                                                                                                                                            |
 
 ## Contributing
 
