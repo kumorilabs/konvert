@@ -151,6 +151,11 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	if f.Namespace != "" {
 		client.Namespace = f.Namespace
 	}
+	client.KubeVersion = &chartutil.KubeVersion{
+		Version: "1.25.8",
+		Major:   "1",
+		Minor:   "25",
+	}
 
 	release, err := client.Run(chart, f.Values)
 	if err != nil {
