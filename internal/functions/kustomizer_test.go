@@ -177,7 +177,6 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
-    config.kubernetes.io/path: 'kustomization.yaml'
 resources:
 - configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
 - service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
@@ -228,7 +227,6 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
-    config.kubernetes.io/path: 'kustomization.yaml'
 namespace: mysql
 resources:
 - configmap-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
@@ -341,7 +339,6 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
-    config.kubernetes.io/path: 'kustomization.yaml'
 resources: []
 `,
 		},
@@ -388,7 +385,6 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: 'true'
     internal.config.kubernetes.io/path: kustomization.yaml
-    config.kubernetes.io/path: 'kustomization.yaml'
 resources:
 - service-mysql.yaml # konvert.kumorilabs.io/chart: https://charts.bitnami.com/bitnami,mysql
 `,

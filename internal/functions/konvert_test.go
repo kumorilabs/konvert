@@ -34,7 +34,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -75,7 +75,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -158,7 +158,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -200,7 +200,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -218,7 +218,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -285,7 +285,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -303,7 +303,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -368,7 +368,7 @@ metadata:
 data:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -381,7 +381,7 @@ data:
 `,
 			expectedRepo:      "https://charts.bitnami.com/bitnami",
 			expectedChart:     "mysql",
-			expectedVersion:   "8.6.2",
+			expectedVersion:   "9.10.1",
 			expectedNamespace: "mysql",
 			expectedPath:      "upstream",
 			expectedPattern:   "%s_%s.yaml",
@@ -413,7 +413,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -426,7 +426,7 @@ spec:
 `,
 			expectedRepo:      "https://charts.bitnami.com/bitnami",
 			expectedChart:     "mysql",
-			expectedVersion:   "8.6.2",
+			expectedVersion:   "9.10.1",
 			expectedNamespace: "mysql",
 			expectedPath:      "upstream",
 			expectedPattern:   "%s_%s.yaml",
@@ -450,7 +450,7 @@ metadata:
 spec:
   chart: mysql
   repo: https://charts.bitnami.com/bitnami
-  version: 8.6.2
+  version: 9.10.1
   namespace: mysql
   path: "upstream"
   pattern: "%s_%s.yaml"
@@ -463,7 +463,7 @@ spec:
 `,
 			expectedRepo:      "https://charts.bitnami.com/bitnami",
 			expectedChart:     "mysql",
-			expectedVersion:   "8.6.2",
+			expectedVersion:   "9.10.1",
 			expectedNamespace: "mysql",
 			expectedPath:      "subdir/upstream",
 			expectedPattern:   "%s_%s.yaml",
@@ -561,7 +561,7 @@ func TestKonvertFilter(t *testing.T) {
 			releaseName: "db01",
 			repo:        "https://charts.bitnami.com/bitnami",
 			chart:       "mysql",
-			version:     "8.6.2",
+			version:     "9.10.1",
 			namespace:   "",
 			kustomize:   true,
 			values: map[string]interface{}{
@@ -591,14 +591,14 @@ func TestKonvertFilter(t *testing.T) {
 		{
 			name:          "mysql",
 			chart:         "mysql",
-			version:       "8.6.2",
+			version:       "9.10.1",
 			namespace:     "mysql",
 			expectedError: "repo cannot be empty",
 		},
 		{
 			name:          "mysql",
 			repo:          "https://charts.bitnami.com/bitnami",
-			version:       "8.6.2",
+			version:       "9.10.1",
 			namespace:     "mysql",
 			expectedError: "chart cannot be empty",
 		},

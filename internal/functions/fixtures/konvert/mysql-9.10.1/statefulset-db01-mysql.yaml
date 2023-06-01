@@ -5,7 +5,7 @@ metadata:
   name: db01-mysql
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/component: primary
@@ -14,6 +14,7 @@ metadata:
     konvert.kumorilabs.io/chart: 'https://charts.bitnami.com/bitnami,mysql'
 spec:
   replicas: 1
+  podManagementPolicy: ""
   selector:
     matchLabels:
       app.kubernetes.io/name: mysql
@@ -25,10 +26,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configuration: 497ca8dd005acf277ac0dcd94939ca2fe3b407a27de324e0536356f3fd7e679f
+        checksum/configuration: f628d04101fb0b502df9fbbb8f76e6513f8b6ecb497e7bd3af169f4bffb84eb0
       labels:
         app.kubernetes.io/name: mysql
-        helm.sh/chart: mysql-8.6.2
+        helm.sh/chart: mysql-9.10.1
         app.kubernetes.io/instance: db01
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: primary
@@ -42,16 +43,17 @@ spec:
                 matchLabels:
                   app.kubernetes.io/name: mysql
                   app.kubernetes.io/instance: db01
-                  app.kubernetes.io/component: primary
               topologyKey: kubernetes.io/hostname
             weight: 1
       securityContext:
         fsGroup: 1001
+      initContainers:
       containers:
       - name: mysql
-        image: docker.io/bitnami/mysql:8.0.25-debian-10-r16
+        image: docker.io/bitnami/mysql:8.0.33-debian-11-r12
         imagePullPolicy: "IfNotPresent"
         securityContext:
+          runAsNonRoot: true
           runAsUser: 1001
         env:
         - name: BITNAMI_DEBUG
@@ -70,12 +72,13 @@ spec:
               key: mysql-password
         - name: MYSQL_DATABASE
           value: "my_database"
+        envFrom:
         ports:
         - name: mysql
           containerPort: 3306
         livenessProbe:
           failureThreshold: 3
-          initialDelaySeconds: 120
+          initialDelaySeconds: 5
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
@@ -91,7 +94,7 @@ spec:
               mysqladmin status -uroot -p"${password_aux}"
         readinessProbe:
           failureThreshold: 3
-          initialDelaySeconds: 30
+          initialDelaySeconds: 5
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
@@ -106,8 +109,8 @@ spec:
               fi
               mysqladmin status -uroot -p"${password_aux}"
         startupProbe:
-          failureThreshold: 60
-          initialDelaySeconds: 120
+          failureThreshold: 10
+          initialDelaySeconds: 15
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
@@ -141,6 +144,7 @@ spec:
         app.kubernetes.io/name: mysql
         app.kubernetes.io/instance: db01
         app.kubernetes.io/component: primary
+      annotations:
     spec:
       accessModes:
       - "ReadWriteOnce"

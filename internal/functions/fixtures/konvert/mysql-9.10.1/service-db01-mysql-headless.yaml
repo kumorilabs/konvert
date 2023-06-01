@@ -5,7 +5,7 @@ metadata:
   name: db01-mysql-headless
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: konvert
     app.kubernetes.io/component: primary
