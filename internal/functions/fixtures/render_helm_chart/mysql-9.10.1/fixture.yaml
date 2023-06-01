@@ -4,13 +4,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: db01-mysql
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
   annotations:
+automountServiceAccountToken: true
 secrets:
   - name: db01-mysql
 ---
@@ -19,10 +20,10 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: db01-mysql
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
 type: Opaque
@@ -35,16 +36,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: db01-mysql
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
 data:
   my.cnf: |-
-    
     [mysqld]
     default_authentication_plugin=mysql_native_password
     skip-name-resolve
@@ -56,11 +56,14 @@ data:
     datadir=/bitnami/mysql/data
     tmpdir=/opt/bitnami/mysql/tmp
     max_allowed_packet=16M
-    bind-address=0.0.0.0
+    bind-address=*
     pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
     log-error=/opt/bitnami/mysql/logs/mysqld.log
     character-set-server=UTF8
     collation-server=utf8_general_ci
+    slow_query_log=0
+    slow_query_log_file=/opt/bitnami/mysql/logs/mysqld.log
+    long_query_time=10.0
     
     [client]
     port=3306
@@ -78,14 +81,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: db01-mysql-headless
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
-  annotations:
 spec:
   type: ClusterIP
   clusterIP: None
@@ -104,16 +106,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name: db01-mysql
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
   annotations:
 spec:
   type: ClusterIP
+  sessionAffinity: None
   ports:
     - name: mysql
       port: 3306
@@ -130,15 +133,16 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: db01-mysql
-  namespace: mysql
+  namespace: "mysql"
   labels:
     app.kubernetes.io/name: mysql
-    helm.sh/chart: mysql-8.6.2
+    helm.sh/chart: mysql-9.10.1
     app.kubernetes.io/instance: db01
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: primary
 spec:
   replicas: 1
+  podManagementPolicy: ""
   selector:
     matchLabels: 
       app.kubernetes.io/name: mysql
@@ -150,16 +154,16 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configuration: 936ef7d1f4a8a5a57483a5ef0447d273152dd20fa5f1ad049f57237f83a98bae
+        checksum/configuration: 46c744c21e5d270af00dbd772ef4ff1754f2dc047e725eafddb3a7a4f4a34411
       labels:
         app.kubernetes.io/name: mysql
-        helm.sh/chart: mysql-8.6.2
+        helm.sh/chart: mysql-9.10.1
         app.kubernetes.io/instance: db01
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: primary
     spec:
-      
       serviceAccountName: db01-mysql
+      
       affinity:
         podAffinity:
           
@@ -170,20 +174,19 @@ spec:
                   matchLabels:
                     app.kubernetes.io/name: mysql
                     app.kubernetes.io/instance: db01
-                    app.kubernetes.io/component: primary
-                namespaces:
-                  - "mysql"
                 topologyKey: kubernetes.io/hostname
               weight: 1
         nodeAffinity:
           
       securityContext:
         fsGroup: 1001
+      initContainers:
       containers:
         - name: mysql
-          image: docker.io/bitnami/mysql:8.0.25-debian-10-r16
+          image: docker.io/bitnami/mysql:8.0.33-debian-11-r12
           imagePullPolicy: "IfNotPresent"
           securityContext:
+            runAsNonRoot: true
             runAsUser: 1001
           env:
             - name: BITNAMI_DEBUG
@@ -202,12 +205,13 @@ spec:
                   key: mysql-password
             - name: MYSQL_DATABASE
               value: "my_database"
+          envFrom:
           ports:
             - name: mysql
               containerPort: 3306
           livenessProbe:
             failureThreshold: 3
-            initialDelaySeconds: 120
+            initialDelaySeconds: 5
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -223,7 +227,7 @@ spec:
                   mysqladmin status -uroot -p"${password_aux}"
           readinessProbe:
             failureThreshold: 3
-            initialDelaySeconds: 30
+            initialDelaySeconds: 5
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -238,8 +242,8 @@ spec:
                   fi
                   mysqladmin status -uroot -p"${password_aux}"
           startupProbe:
-            failureThreshold: 60
-            initialDelaySeconds: 120
+            failureThreshold: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -273,6 +277,7 @@ spec:
           app.kubernetes.io/name: mysql
           app.kubernetes.io/instance: db01
           app.kubernetes.io/component: primary
+        annotations:
       spec:
         accessModes:
           - "ReadWriteOnce"

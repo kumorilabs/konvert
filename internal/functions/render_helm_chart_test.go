@@ -177,7 +177,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			releaseName: "db01",
 			repo:        "https://charts.bitnami.com/bitnami",
 			chart:       "mysql",
-			version:     "8.6.2",
+			version:     "9.10.1",
 			namespace:   "mysql",
 			values: map[string]interface{}{
 				"auth": map[string]interface{}{
