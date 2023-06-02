@@ -2,7 +2,6 @@ package functions
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -68,7 +67,7 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		return items, fmt.Errorf("version cannot be empty")
 	}
 
-	tmpdir, err := ioutil.TempDir("", "konvert-helm-")
+	tmpdir, err := os.MkdirTemp("", "konvert-helm-")
 	if err != nil {
 		return items, errors.Wrap(err, "unable to create temp directory for helm config and cache")
 	}
@@ -110,7 +109,7 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		return nil, errors.Wrap(err, "unable to resolve chart url")
 	}
 
-	tmpDir, err := ioutil.TempDir("", "konvert")
+	tmpDir, err := os.MkdirTemp("", "konvert")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create temp directory")
 	}

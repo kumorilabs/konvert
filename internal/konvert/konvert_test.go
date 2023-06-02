@@ -2,7 +2,6 @@ package konvert
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,7 +56,7 @@ func TestNewKonverter(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tmpDir, err := ioutil.TempDir("", "konverter-new")
+			tmpDir, err := os.MkdirTemp("", "konverter-new")
 			require.NoError(t, err, "TempDir")
 			defer func() {
 				os.RemoveAll(tmpDir)
@@ -82,7 +81,7 @@ func TestNewKonverter(t *testing.T) {
 }
 
 func TestKonverterRun(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "konverter-run")
+	tmpDir, err := os.MkdirTemp("", "konverter-run")
 	require.NoError(t, err, "TempDir")
 	defer func() {
 		os.RemoveAll(tmpDir)
@@ -140,7 +139,7 @@ spec:
 		return err
 	}
 
-	return ioutil.WriteFile(
+	return os.WriteFile(
 		fn,
 		[]byte(konvertyaml),
 		0644,
