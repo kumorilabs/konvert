@@ -42,6 +42,7 @@ type RenderHelmChartFunction struct {
 	Namespace          string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
+	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
 }
 
 func (f *RenderHelmChartFunction) Name() string {
@@ -151,10 +152,15 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	if f.Namespace != "" {
 		client.Namespace = f.Namespace
 	}
-	client.KubeVersion = &chartutil.KubeVersion{
-		Version: "1.25.8",
-		Major:   "1",
-		Minor:   "25",
+	if f.KubeVersion != "" {
+		ver, err := chartutil.ParseKubeVersion(f.KubeVersion)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to parse kubeVersion")
+		}
+		log.WithFields(
+			log.Fields{"kubeVersion": f.KubeVersion, "ver": ver},
+		).Info("parsed version")
+		client.KubeVersion = ver
 	}
 
 	release, err := client.Run(chart, f.Values)

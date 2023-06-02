@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/kumorilabs/konvert/internal/kube"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
@@ -66,6 +68,7 @@ type KonvertFunction struct {
 	Values             map[string]interface{} `json:"values,omitempty"`
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
+	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
 }
 
 func (f *KonvertFunction) Name() string {
@@ -87,6 +90,17 @@ func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
 
 	if !isDefaultPath(basedir) {
 		f.Path = filepath.Join(basedir, f.Path)
+	}
+
+	if f.KubeVersion == "" {
+		kubeVersion, err := kube.TryDiscoverKubeVersion()
+		if err != nil {
+			log.WithError(err).Debug("unable to discover kubernetes version")
+		}
+		log.WithField("kubernetes-version", kubeVersion).Debug("discovered kubernetes version")
+		if kubeVersion != "" {
+			f.KubeVersion = kubeVersion
+		}
 	}
 
 	return nil
@@ -119,6 +133,7 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Repo:        f.Repo,
 			Chart:       f.Chart,
 			Version:     f.Version,
+			KubeVersion: f.KubeVersion,
 			Values:      f.Values,
 			Namespace:   f.Namespace,
 			SkipHooks:   f.SkipHooks,
