@@ -22,12 +22,21 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.20
+        go-version: '1.20.4'
+    - name: Go Build Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
     - name: GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
         distribution: goreleaser
         version: latest
-        args: release --rm-dist
+        args: release --clean --skip-publish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
