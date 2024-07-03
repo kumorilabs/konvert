@@ -6,7 +6,7 @@ require (
 	github.com/andrew-d/go-termutil v0.0.0-20150726205930-009166a695a2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.8.0
 	helm.sh/helm/v3 v3.10.3
 	sigs.k8s.io/kustomize/kyaml v0.13.9
@@ -61,7 +61,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
