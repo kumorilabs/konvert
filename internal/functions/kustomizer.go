@@ -144,7 +144,7 @@ func (f *KustomizerFunction) kustomizeResources(kustnode *kyaml.RNode, resitems 
 	return nil
 }
 
-func (f *KustomizerFunction) kustomizeNamespace(kustnode *kyaml.RNode, namespace string) error {
+func (f *KustomizerFunction) kustomizeNamespace(kustnode *kyaml.RNode) error {
 	if f.Namespace != "" {
 		err := kustnode.PipeE(
 			kyaml.SetField("namespace", kyaml.NewScalarRNode(f.Namespace)),
@@ -181,7 +181,7 @@ func (f *KustomizerFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error
 	}
 
 	// set or clear namespace
-	if err := f.kustomizeNamespace(kustnode, f.Namespace); err != nil {
+	if err := f.kustomizeNamespace(kustnode); err != nil {
 		return items, err
 	}
 

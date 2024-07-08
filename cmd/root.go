@@ -21,8 +21,8 @@ type root struct {
 	filepath string
 }
 
-func newRootCommand(args []string) *cobra.Command {
-	fncommand := newFnCommand(args)
+func newRootCommand() *cobra.Command {
+	fncommand := newFnCommand()
 
 	if !termutil.Isatty(os.Stdin.Fd()) {
 		log.Info("running in fn mode")
@@ -60,7 +60,7 @@ func (r *root) run() error {
 
 // Execute runs the root command
 func Execute(args []string) {
-	if err := newRootCommand(args).Execute(); err != nil {
+	if err := newRootCommand().Execute(); err != nil {
 		log.Error(err)
 		os.Exit(2)
 	}

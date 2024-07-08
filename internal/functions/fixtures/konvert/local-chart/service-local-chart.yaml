@@ -1,0 +1,24 @@
+# Source: local-chart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: local-chart
+  labels:
+    helm.sh/chart: local-chart-0.1.0
+    app.kubernetes.io/name: local-chart
+    app.kubernetes.io/instance: local-chart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: konvert
+  annotations:
+    konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: './local-chart'
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: local-chart
+    app.kubernetes.io/instance: local-chart

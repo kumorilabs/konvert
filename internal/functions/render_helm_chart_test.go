@@ -188,6 +188,20 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			},
 		},
 		{
+			name:        "mysql",
+			releaseName: "db01",
+			chart:       "oci://registry-1.docker.io/bitnamicharts/mysql",
+			version:     "9.10.1",
+			namespace:   "mysql",
+			values: map[string]interface{}{
+				"auth": map[string]interface{}{
+					"rootPassword": "password",
+					"username":     "admin",
+					"password":     "password",
+				},
+			},
+		},
+		{
 			name:      "cluster-autoscaler",
 			repo:      "https://kubernetes.github.io/autoscaler",
 			chart:     "cluster-autoscaler",
@@ -218,11 +232,9 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			skipTests: true,
 		},
 		{
-			name:          "mysql",
-			chart:         "mysql",
-			version:       "8.6.2",
-			namespace:     "mysql",
-			expectedError: "repo cannot be empty",
+			name:      "local-chart",
+			chart:     "local-chart",
+			namespace: "local-chart",
 		},
 		{
 			name:          "mysql",
@@ -230,13 +242,6 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			version:       "8.6.2",
 			namespace:     "mysql",
 			expectedError: "chart cannot be empty",
-		},
-		{
-			name:          "mysql",
-			repo:          "https://charts.bitnami.com/bitnami",
-			chart:         "mysql",
-			namespace:     "mysql",
-			expectedError: "version cannot be empty",
 		},
 	}
 
@@ -251,6 +256,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			fn.Values = test.values
 			fn.SkipHooks = test.skipHooks
 			fn.SkipTests = test.skipTests
+			fn.BaseDirectory = "./examples"
 
 			output, err := fn.Filter([]*kyaml.RNode{})
 			if test.expectedError != "" {
@@ -286,10 +292,17 @@ func TestRenderHelmChartFilter(t *testing.T) {
 				t.FailNow()
 			}
 
+			fixturePath := func() string {
+				if test.version == "" {
+					return fmt.Sprintf("./fixtures/render_helm_chart/%s", test.name)
+				} else {
+					return fmt.Sprintf("./fixtures/render_helm_chart/%s-%s", test.name, test.version)
+				}
+			}()
 			err = kio.Pipeline{
 				Inputs: []kio.Reader{
 					kio.LocalPackageReader{
-						PackagePath: fmt.Sprintf("./fixtures/render_helm_chart/%s-%s", test.name, test.version),
+						PackagePath: fixturePath,
 					},
 				},
 				Outputs: []kio.Writer{

@@ -1,11 +1,15 @@
 package konvert
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/kumorilabs/konvert/internal/functions"
+	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -42,6 +46,7 @@ func New(kpath string) (*Konverter, error) {
 		basedir    string
 	)
 
+	log.WithField("path", kpath).Debug("creating Konverter")
 	finfo, err := os.Stat(kpath)
 	if err != nil {
 		return nil, err
@@ -71,7 +76,8 @@ func loadFn(kpath string) (kio.Filter, error) {
 	if err != nil {
 		return nil, err
 	}
-	fn := &functions.KonvertFunction{}
+	log.WithField("path", kpath).Debug("adding Konvert fn")
+	fn := functions.Konvert(kpath)
 	if err := fn.Config(konvertNode); err != nil {
 		return nil, err
 	}
@@ -88,7 +94,14 @@ func discoverFns(pkgpath string) ([]kio.Filter, error) {
 
 	for _, rnode := range rnodes {
 		if functions.IsKonvertFile(rnode) {
-			fn := &functions.KonvertFunction{}
+			path, _, err := kioutil.GetFileAnnotations(rnode)
+			if err != nil {
+				return konvertfns, fmt.Errorf("getting file annotations: %w", err)
+			}
+			path = filepath.Join(pkgpath, path)
+
+			log.WithField("path", path).Debug("adding Konvert fn")
+			fn := functions.Konvert(path)
 			if err := fn.Config(rnode); err != nil {
 				return konvertfns, err
 			}

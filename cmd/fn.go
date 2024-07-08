@@ -6,7 +6,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 )
 
-func newFnCommand(args []string) *cobra.Command {
+func newFnCommand() *cobra.Command {
 	kp := functions.KonvertProcessor{}
 	cmd := command.Build(&kp, command.StandaloneEnabled, false)
 	cmd.Use = "fn"

@@ -1,0 +1,22 @@
+# Source: local-chart/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "local-chart-test-connection"
+  labels:
+    helm.sh/chart: local-chart-0.1.0
+    app.kubernetes.io/name: local-chart
+    app.kubernetes.io/instance: local-chart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: konvert
+  annotations:
+    "helm.sh/hook": test
+    konvert.kumorilabs.io/generated-by: 'konvert'
+    konvert.kumorilabs.io/chart: './local-chart'
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['local-chart:80']
+  restartPolicy: Never

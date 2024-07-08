@@ -175,7 +175,7 @@ data:
 			expectedError: "chart cannot be empty",
 		},
 		{
-			name: "missing-repo",
+			name: "local-chart-directory",
 			input: `
 apiVersion: v1
 kind: Service
@@ -197,8 +197,8 @@ data:
   env: test
   logLevel: debug
 `,
-			chart:         "mysql",
-			expectedError: "repo cannot be empty",
+			chart:                   "../charts/mysql",
+			expectedChartAnnotation: "../charts/mysql",
 		},
 	}
 

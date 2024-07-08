@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/registry"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"helm.sh/helm/v3/pkg/repo"
@@ -42,6 +43,7 @@ type RenderHelmChartFunction struct {
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
+	BaseDirectory      string
 }
 
 func (f *RenderHelmChartFunction) Name() string {
@@ -57,20 +59,19 @@ func (f *RenderHelmChartFunction) Config(rn *kyaml.RNode) error {
 }
 
 func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	if f.Repo == "" {
-		return items, fmt.Errorf("repo cannot be empty")
-	}
+	fnlog := log.WithField("fn", f.Name())
+	fnlog.Debug("rendering")
+
 	if f.Chart == "" {
 		return items, fmt.Errorf("chart cannot be empty")
-	}
-	if f.Version == "" {
-		return items, fmt.Errorf("version cannot be empty")
 	}
 
 	tmpdir, err := os.MkdirTemp("", "konvert-helm-")
 	if err != nil {
 		return items, errors.Wrap(err, "unable to create temp directory for helm config and cache")
 	}
+	defer cleanupTmpDir(tmpdir, fnlog)
+
 	configPath := filepath.Join(tmpdir, ".config")
 	cachePath := filepath.Join(tmpdir, ".cache")
 	dataPath := filepath.Join(tmpdir, ".data")
@@ -86,46 +87,75 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		"HELM_DATA_HOME":   dataPath,
 	} {
 		if err := os.Setenv(k, v); err != nil {
-			return items, errors.Wrapf(err, "unable to set environment variable %q", k)
+			return items, errors.Wrapf(err, "setting environment variable %q", k)
 		}
 	}
 
-	getters := getter.All(settings)
-	c := downloader.ChartDownloader{
-		Out:              os.Stderr,
-		Getters:          getters,
-		RepositoryConfig: settings.RepositoryConfig,
-		RepositoryCache:  settings.RepositoryCache,
-	}
-
-	chartURL, err := repo.FindChartInRepoURL(
-		f.Repo,
-		f.Chart,
-		f.Version,
-		"", "", "",
-		getters,
+	var (
+		chartURL string
+		archive  string
 	)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to resolve chart url")
-	}
 
-	tmpDir, err := os.MkdirTemp("", "konvert")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create temp directory")
-	}
-	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			log.WithError(err).
-				WithField("directory", tmpDir).
-				Error("unable to remove temporary directory")
+	if f.Repo == "" {
+		log.WithField("base-directory", f.BaseDirectory).Debug("looking for local chart directory")
+		if chartDir := resolveLocalChartDirectory(f.Chart, f.BaseDirectory); chartDir != "" {
+			fnlog.WithField("chart", chartDir).Debug("using local chart directory")
+			archive = chartDir
 		}
-	}()
-
-	archive, _, err := c.DownloadTo(chartURL, "", tmpDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to download chart")
 	}
 
+	if archive == "" {
+		getters := getter.All(settings)
+		regclient, err := getRegistryClient()
+		if err != nil {
+			return nil, errors.Wrap(err, "getting registry client")
+		}
+		c := downloader.ChartDownloader{
+			Out:              os.Stderr,
+			Getters:          getters,
+			RepositoryConfig: settings.RepositoryConfig,
+			RepositoryCache:  settings.RepositoryCache,
+			RegistryClient:   regclient,
+		}
+
+		if f.Repo != "" {
+			// if repo is specified, resolve url from repo and chart name
+			fnlog.WithFields(
+				log.Fields{
+					"repo":    f.Repo,
+					"chart":   f.Chart,
+					"version": f.Version,
+				},
+			).Debug("resolving chart url from repo")
+			chartURL, err = repo.FindChartInRepoURL(
+				f.Repo,
+				f.Chart,
+				f.Version,
+				"", "", "",
+				getters,
+			)
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to resolve chart url")
+			}
+		} else {
+			// otherwise, assume Chart is the full chart URL
+			chartURL = f.Chart
+		}
+
+		fnlog.WithField("url", f.Chart).Debug("downloading chart from url")
+		tmpDir, err := os.MkdirTemp("", "konvert")
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to create temp directory")
+		}
+		defer cleanupTmpDir(tmpDir, fnlog)
+
+		archive, _, err = c.DownloadTo(chartURL, f.Version, tmpDir)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to download chart")
+		}
+	}
+
+	fnlog.WithField("archive", archive).Debug("loading chart")
 	chart, err := loader.Load(archive)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load chart")
@@ -156,9 +186,9 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to parse kubeVersion")
 		}
-		log.WithFields(
+		fnlog.WithFields(
 			log.Fields{"kubeVersion": f.KubeVersion, "ver": ver},
-		).Info("parsed version")
+		).Debug("parsed version")
 		client.KubeVersion = ver
 	}
 
@@ -183,7 +213,7 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 			if f.SkipTests && isTestHook(hook) {
 				continue
 			}
-			log.WithFields(
+			fnlog.WithFields(
 				log.Fields{"kind": hook.Kind, "name": hook.Name, "path": hook.Path, "weight": hook.Weight},
 			).Debug("adding hook")
 			manifests[hook.Path] = fmt.Sprintf("---\n# Source: %s\n%s\n", hook.Path, hook.Manifest)
@@ -204,7 +234,7 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	var nonChartNodes []*kyaml.RNode
 	for _, item := range items {
 		if val, ok := item.GetAnnotations()[annotationKonvertChart]; ok {
-			if val == fmt.Sprintf("%s,%s", f.Repo, f.Chart) {
+			if val == konvertChartAnnotationValue(f.Repo, f.Chart) {
 				continue
 			}
 		}
@@ -213,5 +243,35 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	// append newly rendered chart nodes
 	items = append(nonChartNodes, renderedNodes...)
 
+	fnlog.Debug("done")
 	return items, nil
+}
+
+func resolveLocalChartDirectory(chart string, workingDir string) string {
+	if !filepath.IsAbs(chart) {
+		chartDir, err := filepath.Abs(filepath.Join(workingDir, chart))
+		if err != nil {
+			return ""
+		}
+		chart = chartDir
+	}
+	if _, err := os.Stat(chart); err != nil {
+		return ""
+	}
+	return chart
+}
+
+func cleanupTmpDir(tmpdir string, log *log.Entry) {
+	if err := os.RemoveAll(tmpdir); err != nil {
+		log.WithError(err).
+			WithField("directory", tmpdir).
+			Error("unable to remove temporary directory")
+	}
+}
+
+func getRegistryClient() (*registry.Client, error) {
+	return registry.NewClient(
+		registry.ClientOptDebug(true),
+		registry.ClientOptEnableCache(true),
+	)
 }

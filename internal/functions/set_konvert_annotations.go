@@ -42,9 +42,6 @@ func (f *SetKonvertAnnotationsFunction) Config(rn *kyaml.RNode) error {
 }
 
 func (f *SetKonvertAnnotationsFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	if f.Repo == "" {
-		return items, fmt.Errorf("repo cannot be empty")
-	}
 	if f.Chart == "" {
 		return items, fmt.Errorf("chart cannot be empty")
 	}
@@ -57,11 +54,18 @@ func (f *SetKonvertAnnotationsFunction) Filter(items []*kyaml.RNode) ([]*kyaml.R
 	}
 
 	items, err = kio.FilterAll(
-		kyaml.SetAnnotation(annotationKonvertChart, fmt.Sprintf("%s,%s", f.Repo, f.Chart)),
+		kyaml.SetAnnotation(annotationKonvertChart, konvertChartAnnotationValue(f.Repo, f.Chart)),
 	).Filter(items)
 	if err != nil {
 		return items, errors.Wrapf(err, "unable to set annotation %s", annotationKonvertChart)
 	}
 
 	return items, nil
+}
+
+func konvertChartAnnotationValue(repo, chart string) string {
+	if repo != "" {
+		return fmt.Sprintf("%s,%s", repo, chart)
+	}
+	return chart
 }

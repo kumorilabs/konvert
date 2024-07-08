@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/kumorilabs/konvert/internal/kube"
@@ -56,6 +55,12 @@ func (p *KonvertProcessor) functionConfigs(resourceList *framework.ResourceList)
 	return fnconfigs
 }
 
+func Konvert(filePath string) *KonvertFunction {
+	return &KonvertFunction{
+		filePath: filePath,
+	}
+}
+
 type KonvertFunction struct {
 	kyaml.ResourceMeta `json:",inline" yaml:",inline"`
 	Repo               string                 `yaml:"repo,omitempty"`
@@ -69,6 +74,7 @@ type KonvertFunction struct {
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
+	filePath           string
 }
 
 func (f *KonvertFunction) Name() string {
@@ -80,24 +86,31 @@ func (f *KonvertFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
 }
 
 func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
+	fnlog := log.WithField("fn", f.Name())
 	err := loadConfig(f, rn, fnKonvertKind)
 	if err != nil {
 		return err
 	}
 
 	fnconfigPath := rn.GetAnnotations()[kioutil.PathAnnotation]
-	basedir := filepath.Dir(fnconfigPath)
+	baseDir := filepath.Dir(fnconfigPath)
 
-	if !isDefaultPath(basedir) {
-		f.Path = filepath.Join(basedir, f.Path)
+	if !isDefaultPath(f.Path) {
+		f.Path = filepath.Join(baseDir, f.Path)
 	}
+
+	fnlog.WithFields(log.Fields{
+		"fnconfig-path": fnconfigPath,
+		"filePath":      f.filePath,
+		"path":          f.Path,
+	}).Debug("configuring function")
 
 	if f.KubeVersion == "" {
 		kubeVersion, err := kube.TryDiscoverKubeVersion()
 		if err != nil {
-			log.WithError(err).Debug("unable to discover kubernetes version")
+			fnlog.WithError(err).Debug("unable to discover kubernetes version")
 		}
-		log.WithField("kubernetes-version", kubeVersion).Debug("discovered kubernetes version")
+		fnlog.WithField("kubernetes-version", kubeVersion).Debug("discovered kubernetes version")
 		if kubeVersion != "" {
 			f.KubeVersion = kubeVersion
 		}
@@ -107,13 +120,17 @@ func (f *KonvertFunction) Config(rn *kyaml.RNode) error {
 }
 
 func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	log := log.WithFields(
+		log.Fields{"fn": f.Name(), "path": f.filePath},
+	)
 	// for each chart instance (repo, version, release?):
 	//   remove previously rendered chart nodes
 	//   render chart nodes
 	//   run functions against rendered chart nodes
 	//   add rendered chart nodes
+	log.Debug("running")
 
-	annotationKonvertChartValue := fmt.Sprintf("%s,%s", f.Repo, f.Chart)
+	annotationKonvertChartValue := konvertChartAnnotationValue(f.Repo, f.Chart)
 
 	removeByAnnotations := RemoveByAnnotationsFunction{
 		Annotations: map[string]string{
@@ -129,15 +146,16 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	runKonvert := func() ([]*kyaml.RNode, error) {
 		var items []*kyaml.RNode
 		renderHelmChart := RenderHelmChartFunction{
-			ReleaseName: f.ResourceMeta.Name,
-			Repo:        f.Repo,
-			Chart:       f.Chart,
-			Version:     f.Version,
-			KubeVersion: f.KubeVersion,
-			Values:      f.Values,
-			Namespace:   f.Namespace,
-			SkipHooks:   f.SkipHooks,
-			SkipTests:   f.SkipTests,
+			ReleaseName:   f.ResourceMeta.Name,
+			Repo:          f.Repo,
+			Chart:         f.Chart,
+			Version:       f.Version,
+			KubeVersion:   f.KubeVersion,
+			Values:        f.Values,
+			Namespace:     f.Namespace,
+			SkipHooks:     f.SkipHooks,
+			SkipTests:     f.SkipTests,
+			BaseDirectory: filepath.Dir(f.filePath),
 		}
 		items, err := renderHelmChart.Filter(items)
 		if err != nil {
