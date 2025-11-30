@@ -24,7 +24,9 @@
           # dependencies
           vendorHash = "sha256-fDa/jX1nmGA9y/ACQYaZegRQOQa8seKcjL5N/BnNtA4=";
           nativeBuildInputs = [ ];
-          CGO_ENABLED = 0;
+          env = {
+            CGO_ENABLED = "0";
+          };
           doCheck = false;
           ldflags = [
             "-s"
@@ -43,7 +45,7 @@
           packages = {
             konvert = kf;
           };
-          devShell = pkgs.mkShell {
+          devShells.default = pkgs.mkShell {
             packages = with pkgs; [
               curl
               kfilt
