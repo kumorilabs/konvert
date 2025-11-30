@@ -21,4 +21,4 @@ dist/
 
 !example/mysql/konvert.yaml
 !example/cluster-autoscaler/konvert.yaml
-
+/example/multi-konvert/
