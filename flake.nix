@@ -22,7 +22,7 @@
           src = ./.;
           # this needs to be changed any time there is a change in go.mod
           # dependencies
-          vendorHash = "sha256-fDa/jX1nmGA9y/ACQYaZegRQOQa8seKcjL5N/BnNtA4=";
+          vendorHash = "sha256-TSal7MaGrwsXKhQ1qLYrDKXhFfI8hAF/4642zxalcFA=";
           nativeBuildInputs = [ ];
           env = {
             CGO_ENABLED = "0";
