@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -56,6 +57,44 @@ func (f *RenderHelmChartFunction) SetResourceMeta(meta kyaml.ResourceMeta) {
 
 func (f *RenderHelmChartFunction) Config(rn *kyaml.RNode) error {
 	return loadConfig(f, rn, fnRenderHelmChartKind)
+}
+
+// parseManifests parses a map of Helm manifests into RNodes, skipping empty and comment-only manifests
+func parseManifests(manifests map[string]string) ([]*kyaml.RNode, error) {
+	fnlog := log.WithField("fn", fnRenderHelmChartName)
+	var renderedNodes []*kyaml.RNode
+
+	for path, manifest := range manifests {
+		// Skip empty manifests and manifests containing only comments
+		trimmed := strings.TrimSpace(manifest)
+		if len(trimmed) == 0 {
+			fnlog.WithFields(log.Fields{"path": path}).Debug("skipping empty manifest")
+			continue
+		}
+
+		// Check if manifest contains only comments by removing all comment lines
+		hasContent := false
+		for _, line := range strings.Split(trimmed, "\n") {
+			line = strings.TrimSpace(line)
+			if line != "" && !strings.HasPrefix(line, "#") {
+				hasContent = true
+				break
+			}
+		}
+		if !hasContent {
+			fnlog.WithFields(log.Fields{"path": path}).Debug("skipping comment-only manifest")
+			continue
+		}
+
+		node, err := kyaml.Parse(manifest)
+		if err != nil {
+			fnlog.WithFields(log.Fields{"path": path, "manifest": manifest}).Debug("failed to parse manifest")
+			return renderedNodes, errors.Wrap(err, "unable to parse manifest")
+		}
+		renderedNodes = append(renderedNodes, node)
+	}
+
+	return renderedNodes, nil
 }
 
 func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
@@ -220,13 +259,9 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 		}
 	}
 
-	var renderedNodes []*kyaml.RNode
-	for _, manifest := range manifests {
-		node, err := kyaml.Parse(manifest)
-		if err != nil {
-			return renderedNodes, errors.Wrap(err, "unable to parse manifest")
-		}
-		renderedNodes = append(renderedNodes, node)
+	renderedNodes, err := parseManifests(manifests)
+	if err != nil {
+		return renderedNodes, err
 	}
 
 	// remove previously rendered chart nodes (preserve nodes not generated from

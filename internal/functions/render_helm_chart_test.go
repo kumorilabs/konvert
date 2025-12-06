@@ -354,3 +354,130 @@ func TestRenderHelmChartFilter(t *testing.T) {
 		})
 	}
 }
+
+// TestManifestParsing tests that we correctly handle empty and comment-only manifests
+func TestManifestParsing(t *testing.T) {
+	tests := []struct {
+		name           string
+		manifests      map[string]string
+		expectedCount  int
+		expectedError  bool
+		description    string
+	}{
+		{
+			name: "valid-manifests-only",
+			manifests: map[string]string{
+				"service.yaml": `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+spec:
+  ports:
+  - port: 80`,
+				"configmap.yaml": `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+data:
+  key: value`,
+			},
+			expectedCount: 2,
+			description:   "Should parse all valid manifests",
+		},
+		{
+			name: "with-empty-manifest",
+			manifests: map[string]string{
+				"service.yaml": `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+spec:
+  ports:
+  - port: 80`,
+				"empty.yaml": "",
+			},
+			expectedCount: 1,
+			description:   "Should skip empty manifests",
+		},
+		{
+			name: "with-whitespace-only-manifest",
+			manifests: map[string]string{
+				"service.yaml": `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+spec:
+  ports:
+  - port: 80`,
+				"whitespace.yaml": "   \n\n  \t  \n",
+			},
+			expectedCount: 1,
+			description:   "Should skip whitespace-only manifests",
+		},
+		{
+			name: "with-comment-only-manifest",
+			manifests: map[string]string{
+				"service.yaml": `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+spec:
+  ports:
+  - port: 80`,
+				"comments.yaml": `# Source: example/templates/service.yaml
+# Copyright (c) Example Corp
+# This is a comment-only file`,
+			},
+			expectedCount: 1,
+			description:   "Should skip comment-only manifests",
+		},
+		{
+			name: "with-mixed-empty-and-comment-only",
+			manifests: map[string]string{
+				"service.yaml": `apiVersion: v1
+kind: Service
+metadata:
+  name: test
+spec:
+  ports:
+  - port: 80`,
+				"empty1.yaml":    "",
+				"empty2.yaml":    "   \n  ",
+				"comments.yaml":  "# Just comments\n# More comments",
+				"configmap.yaml": `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+data:
+  key: value`,
+			},
+			expectedCount: 2,
+			description:   "Should skip all empty and comment-only manifests",
+		},
+		{
+			name: "all-empty-or-comments",
+			manifests: map[string]string{
+				"empty.yaml":    "",
+				"whitespace.yaml": "  \n\t\n  ",
+				"comments.yaml": "# Only comments here",
+			},
+			expectedCount: 0,
+			description:   "Should return no manifests when all are empty or comments",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Call the actual parseManifests function from render_helm_chart.go
+			renderedNodes, err := parseManifests(test.manifests)
+
+			if test.expectedError {
+				assert.Error(t, err, test.description)
+				return
+			}
+
+			require.NoError(t, err, test.description)
+			assert.Equal(t, test.expectedCount, len(renderedNodes), test.description)
+		})
+	}
+}
