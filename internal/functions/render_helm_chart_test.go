@@ -358,11 +358,11 @@ func TestRenderHelmChartFilter(t *testing.T) {
 // TestManifestParsing tests that we correctly handle empty and comment-only manifests
 func TestManifestParsing(t *testing.T) {
 	tests := []struct {
-		name           string
-		manifests      map[string]string
-		expectedCount  int
-		expectedError  bool
-		description    string
+		name          string
+		manifests     map[string]string
+		expectedCount int
+		expectedError bool
+		description   string
 	}{
 		{
 			name: "valid-manifests-only",
@@ -441,9 +441,9 @@ metadata:
 spec:
   ports:
   - port: 80`,
-				"empty1.yaml":    "",
-				"empty2.yaml":    "   \n  ",
-				"comments.yaml":  "# Just comments\n# More comments",
+				"empty1.yaml":   "",
+				"empty2.yaml":   "   \n  ",
+				"comments.yaml": "# Just comments\n# More comments",
 				"configmap.yaml": `apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -457,9 +457,9 @@ data:
 		{
 			name: "all-empty-or-comments",
 			manifests: map[string]string{
-				"empty.yaml":    "",
+				"empty.yaml":      "",
 				"whitespace.yaml": "  \n\t\n  ",
-				"comments.yaml": "# Only comments here",
+				"comments.yaml":   "# Only comments here",
 			},
 			expectedCount: 0,
 			description:   "Should return no manifests when all are empty or comments",
