@@ -43,6 +43,7 @@ type RenderHelmChartFunction struct {
 	Namespace          string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
+	SkipCRDs           bool                   `json:"skipCRDs,omitempty" yaml:"skipCRDs,omitempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
 	BaseDirectory      string
 }
@@ -216,7 +217,7 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 	client.ReleaseName = releaseName
 	client.Replace = true
 	client.ClientOnly = true
-	client.IncludeCRDs = true
+	client.IncludeCRDs = !f.SkipCRDs
 	if f.Namespace != "" {
 		client.Namespace = f.Namespace
 	}

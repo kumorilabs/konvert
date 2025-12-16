@@ -73,6 +73,7 @@ type KonvertFunction struct {
 	Values             map[string]interface{} `json:"values,omitempty"`
 	SkipHooks          bool                   `json:"skipHooks,omitempty" yaml:"skipHooks,omityempty"`
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
+	SkipCRDs           bool                   `json:"skipCRDs,omitempty" yaml:"skipCRDs,omitempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
 	filePath           string
 }
@@ -155,6 +156,7 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Namespace:     f.Namespace,
 			SkipHooks:     f.SkipHooks,
 			SkipTests:     f.SkipTests,
+			SkipCRDs:      f.SkipCRDs,
 			BaseDirectory: filepath.Dir(f.filePath),
 		}
 		items, err := renderHelmChart.Filter(items)

@@ -170,6 +170,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 		values        map[string]interface{}
 		skipHooks     bool
 		skipTests     bool
+		skipCRDs      bool
 		expectedError string
 	}{
 		{
@@ -232,6 +233,15 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			skipTests: true,
 		},
 		{
+			name:      "kong-skip-crds",
+			repo:      "https://charts.konghq.com",
+			chart:     "kong",
+			version:   "2.6.4",
+			namespace: "kong",
+			skipTests: true,
+			skipCRDs:  true,
+		},
+		{
 			name:      "local-chart",
 			chart:     "local-chart",
 			namespace: "local-chart",
@@ -256,6 +266,7 @@ func TestRenderHelmChartFilter(t *testing.T) {
 			fn.Values = test.values
 			fn.SkipHooks = test.skipHooks
 			fn.SkipTests = test.skipTests
+			fn.SkipCRDs = test.skipCRDs
 			fn.BaseDirectory = "./examples"
 
 			output, err := fn.Filter([]*kyaml.RNode{})
