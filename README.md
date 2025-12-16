@@ -158,6 +158,7 @@ spec:
 | `values`       | The configuration values to use when rendering the chart.                                                                                                                                                                            |
 | `skipHooks`    | If `true`, `konvert` will not render Helm [hook](https://helm.sh/docs/topics/charts_hooks/) resources.                                                                                                                               |
 | `skipTests`    | If `true`, `konvert` will not render Helm test resources.                                                                                                                                                                            |
+| `skipCRDs`     | If `true`, `konvert` will not render CustomResourceDefinitions (CRDs).                                                                                                                                                               |
 
 ## Contributing
 
