@@ -117,6 +117,14 @@ Finally, to render the chart with `konvert`, run:
 kustomize build cert-manager
 ```
 
+## Environment Variables
+
+`konvert` supports the following environment variables:
+
+| Variable                      | Description                                                                                                                                                                                                    |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `KONVERT_FORCE_STANDALONE`    | When set (to any value), forces `konvert` to run in standalone mode even when stdin is not a TTY. Useful for automation, CI/CD pipelines, and tools that don't provide a TTY. Example: `KONVERT_FORCE_STANDALONE= konvert -f cert-manager` |
+
 ## Konvert schema
 
 `konvert` uses a client-side KRM resource to configure how to find and render a Helm chart.

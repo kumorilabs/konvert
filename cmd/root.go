@@ -24,7 +24,11 @@ type root struct {
 func newRootCommand() *cobra.Command {
 	fncommand := newFnCommand()
 
-	if !termutil.Isatty(os.Stdin.Fd()) {
+	// Check if KONVERT_FORCE_STANDALONE is set (any value). This allows konvert
+	// to run in standalone mode even when stdin is not a TTY, which is useful for
+	// automation, CI/CD pipelines, and tools that don't provide a TTY.
+	_, forceStandalone := os.LookupEnv("KONVERT_FORCE_STANDALONE")
+	if !forceStandalone && !termutil.Isatty(os.Stdin.Fd()) {
 		log.Info("running in fn mode")
 		return fncommand
 	}
