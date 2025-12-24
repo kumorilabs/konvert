@@ -1,0 +1,15 @@
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "local-chart.fullname" . }}
+  labels:
+    {{- include "local-chart.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "local-chart.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    interval: 30s
+{{- end }}

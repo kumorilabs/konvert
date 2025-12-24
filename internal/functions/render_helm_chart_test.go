@@ -492,3 +492,121 @@ data:
 		})
 	}
 }
+
+// TestRenderHelmChartFunctionConfigCapabilities tests that the kubeVersion and apiVersions fields are correctly parsed
+func TestRenderHelmChartFunctionConfigCapabilities(t *testing.T) {
+	var tests = []struct {
+		name                string
+		input               string
+		expectedAPIVersions []string
+		expectedKubeVersion string
+	}{
+		{
+			name: "function-config-with-api-versions",
+			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: RenderHelmChart
+metadata:
+  name: fnconfig
+spec:
+  chart: test
+  kubeVersion: v1.29.0
+  apiVersions:
+  - monitoring.coreos.com/v1/ServiceMonitor
+  - monitoring.coreos.com/v1/PrometheusRule
+  - cert-manager.io/v1/Certificate
+`,
+			expectedAPIVersions: []string{
+				"monitoring.coreos.com/v1/ServiceMonitor",
+				"monitoring.coreos.com/v1/PrometheusRule",
+				"cert-manager.io/v1/Certificate",
+			},
+			expectedKubeVersion: "v1.29.0",
+		},
+		{
+			name: "function-config-without-api-versions",
+			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: RenderHelmChart
+metadata:
+  name: fnconfig
+spec:
+  chart: test
+`,
+			expectedAPIVersions: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var fn RenderHelmChartFunction
+
+			input, err := kyaml.Parse(test.input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			err = fn.Config(input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			assert.Equal(t, test.expectedAPIVersions, fn.APIVersions, test.name)
+			assert.Equal(t, test.expectedKubeVersion, fn.KubeVersion, test.name)
+		})
+	}
+}
+
+// TestRenderHelmChartFilterWithAPIVersions tests that charts are correctly rendered with API versions
+func TestRenderHelmChartFilterWithAPIVersions(t *testing.T) {
+	var tests = []struct {
+		name                 string
+		chart                string
+		apiVersions          []string
+		expectedResourceKind string
+		shouldExist          bool
+	}{
+		{
+			name:                 "local-chart-with-servicemonitor-api",
+			chart:                "local-chart",
+			apiVersions:          []string{"monitoring.coreos.com/v1/ServiceMonitor"},
+			expectedResourceKind: "ServiceMonitor",
+			shouldExist:          true,
+		},
+		{
+			name:                 "local-chart-without-servicemonitor-api",
+			chart:                "local-chart",
+			apiVersions:          nil,
+			expectedResourceKind: "ServiceMonitor",
+			shouldExist:          false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var fn RenderHelmChartFunction
+			fn.Chart = test.chart
+			fn.APIVersions = test.apiVersions
+			fn.Namespace = "test"
+			fn.BaseDirectory = "./examples"
+
+			output, err := fn.Filter([]*kyaml.RNode{})
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			// Check if ServiceMonitor was rendered
+			found := false
+			for _, node := range output {
+				if node.GetKind() == test.expectedResourceKind {
+					found = true
+					break
+				}
+			}
+
+			if test.shouldExist {
+				assert.True(t, found, "Expected %s to be rendered when API version is available", test.expectedResourceKind)
+			} else {
+				assert.False(t, found, "Expected %s NOT to be rendered when API version is not available", test.expectedResourceKind)
+			}
+		})
+	}
+}

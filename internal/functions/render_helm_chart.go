@@ -45,6 +45,7 @@ type RenderHelmChartFunction struct {
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 	SkipCRDs           bool                   `json:"skipCRDs,omitempty" yaml:"skipCRDs,omitempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
+	APIVersions        []string               `json:"apiVersions,omitempty" yaml:"apiVersions,omitempty"`
 	BaseDirectory      string
 }
 
@@ -230,6 +231,12 @@ func (f *RenderHelmChartFunction) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, 
 			log.Fields{"kubeVersion": f.KubeVersion, "ver": ver},
 		).Debug("parsed version")
 		client.KubeVersion = ver
+	}
+	if len(f.APIVersions) > 0 {
+		fnlog.WithFields(
+			log.Fields{"apiVersions": f.APIVersions},
+		).Debug("setting API versions")
+		client.APIVersions = chartutil.VersionSet(f.APIVersions)
 	}
 
 	release, err := client.Run(chart, f.Values)

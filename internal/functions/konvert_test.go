@@ -721,3 +721,70 @@ func TestKonvertFilter(t *testing.T) {
 		})
 	}
 }
+
+// TestKonvertConfigCapabilities tests that the Konvert function correctly parses kubeVersion and apiVersions
+func TestKonvertConfigCapabilities(t *testing.T) {
+	var tests = []struct {
+		name                string
+		input               string
+		expectedAPIVersions []string
+		expectedKubeVersion string
+	}{
+		{
+			name: "konvert-with-api-versions",
+			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: test
+  annotations:
+    config.kubernetes.io/path: test/konvert.yaml
+spec:
+  chart: local-chart
+  kubeVersion: v1.29.0
+  apiVersions:
+  - monitoring.coreos.com/v1/ServiceMonitor
+  - monitoring.coreos.com/v1/PrometheusRule
+`,
+			expectedAPIVersions: []string{
+				"monitoring.coreos.com/v1/ServiceMonitor",
+				"monitoring.coreos.com/v1/PrometheusRule",
+			},
+			expectedKubeVersion: "v1.29.0",
+		},
+		{
+			name: "konvert-without-api-versions",
+			input: `apiVersion: konvert.kumorilabs.io/v1alpha1
+kind: Konvert
+metadata:
+  name: test
+  annotations:
+    config.kubernetes.io/path: test/konvert.yaml
+spec:
+  chart: local-chart
+`,
+			expectedAPIVersions: nil,
+			// KubeVersion will be auto-discovered, so we don't check it
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var fn KonvertFunction
+
+			input, err := kyaml.Parse(test.input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			err = fn.Config(input)
+			if !assert.NoError(t, err, test.name) {
+				t.FailNow()
+			}
+
+			assert.Equal(t, test.expectedAPIVersions, fn.APIVersions, test.name)
+			if test.expectedKubeVersion != "" {
+				assert.Equal(t, test.expectedKubeVersion, fn.KubeVersion, test.name)
+			}
+		})
+	}
+}

@@ -75,6 +75,7 @@ type KonvertFunction struct {
 	SkipTests          bool                   `json:"skipTests,omitempty" yaml:"skipTests,omityempty"`
 	SkipCRDs           bool                   `json:"skipCRDs,omitempty" yaml:"skipCRDs,omitempty"`
 	KubeVersion        string                 `json:"kubeVersion,omitempty" yaml:"kubeVersion,omitempty"`
+	APIVersions        []string               `json:"apiVersions,omitempty" yaml:"apiVersions,omitempty"`
 	filePath           string
 }
 
@@ -152,6 +153,7 @@ func (f *KonvertFunction) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			Chart:         f.Chart,
 			Version:       f.Version,
 			KubeVersion:   f.KubeVersion,
+			APIVersions:   f.APIVersions,
 			Values:        f.Values,
 			Namespace:     f.Namespace,
 			SkipHooks:     f.SkipHooks,

@@ -167,6 +167,8 @@ spec:
 | `skipHooks`    | If `true`, `konvert` will not render Helm [hook](https://helm.sh/docs/topics/charts_hooks/) resources.                                                                                                                               |
 | `skipTests`    | If `true`, `konvert` will not render Helm test resources.                                                                                                                                                                            |
 | `skipCRDs`     | If `true`, `konvert` will not render CustomResourceDefinitions (CRDs).                                                                                                                                                               |
+| `kubeVersion`  | The Kubernetes version to use when rendering the chart. This allows templates to conditionally render based on the target Kubernetes version.                                                                                        |
+| `apiVersions`  | A list of Kubernetes API versions to make available during rendering. This allows templates to conditionally render resources based on available APIs (e.g., `monitoring.coreos.com/v1/ServiceMonitor`).                            |
 
 ## Contributing
 
